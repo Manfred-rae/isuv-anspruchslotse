@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ISUV Anspruchslotse – Bürgergeld-Fragebogen</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f4f8; color: #222; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    #root { max-width: 600px; margin: 0 auto; padding: 16px 16px 60px; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); padding: 16px; margin-bottom: 14px; }
+    .header { text-align: center; padding: 20px 16px 14px; background: white; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+    .header img { width: 120px; height: auto; margin-bottom: 8px; }
+    .header h2 { font-size: 15px; color: #003366; margin: 0; }
+    .header p { font-size: 11px; color: #666; margin-top: 3px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #003366; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading { text-align: center; padding: 60px 20px; color: #666; }
+    .error-box { background: #ffebee; border: 1px solid #e53935; border-radius: 8px; padding: 14px; margin: 10px 0; color: #b71c1c; font-size: 13px; }
+    .success-box { background: #e8f5e9; border: 1px solid #2e7d32; border-radius: 8px; padding: 16px; margin: 10px 0; color: #1b5e20; font-size: 13px; text-align: center; }
+    .info-box { background: #e0f7fa; border: 1px solid #80deea; border-radius: 7px; padding: 10px 12px; font-size: 11px; color: #006064; margin-bottom: 10px; }
+    .warn-box { background: #fffde7; border: 1px solid #ffd54f; border-radius: 7px; padding: 10px; font-size: 11px; color: #6d4c00; margin-bottom: 10px; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 6px; font-family: inherit; }
+    .btn-primary { background: #003366; color: white; }
+    .btn-success { background: #2e7d32; color: white; }
+    .btn-outline { background: #fff; color: #003366; border: 2px solid #003366; }
+    .pflicht-info { font-size: 10px; color: #999; text-align: center; margin-top: 8px; }
+    label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; color: #444; }
+    input, select, textarea { width: 100%; padding: 9px 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px !important; font-family: inherit; background: #fff; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; }
+    textarea { height: 80px; resize: vertical; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect } = React;
+
+const urlParams = new URLSearchParams(window.location.search);
+const FORMULAR_ID = urlParams.get("id") || "";
+const SB_URL = urlParams.get("sb") || "";
+const SB_KEY = urlParams.get("key") || "";
+
+// ── TESTMODUS: Entfernen vor Go-Live ──────────────────────────
+const _TEST = !FORMULAR_ID;
+const _TEST_VORAUSGEFUELLT = { bgVorname:"Max", bgName:"Mustermann", bgMail:"test@test.de" };
+// ─────────────────────────────────────────────────────────────
+const LOGO = "https://anspruchslotse.github.io/isuv-anspruchslotse/isuv-logo.png";
+const MONATE_KURZ = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+
+const sbHeaders = () => ({
+  "Content-Type": "application/json",
+  "apikey": SB_KEY,
+  "Authorization": "Bearer " + SB_KEY
+});
+
+const sbLade = async (id) => {
+  if (!SB_URL || !SB_KEY || !id) return null;
+  try {
+    const res = await fetch(SB_URL + "/rest/v1/formulare?formular_id=eq." + encodeURIComponent(id), { headers: sbHeaders() });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows && rows[0] ? rows[0] : null;
+  } catch(e) { return null; }
+};
+
+const sbSpeichere = async (id, daten, status) => {
+  if (!SB_URL || !SB_KEY) return false;
+  try {
+    const res = await fetch(SB_URL + "/rest/v1/formulare?formular_id=eq." + encodeURIComponent(id), {
+      method: "PATCH",
+      headers: { ...sbHeaders(), "Prefer": "return=minimal" },
+      body: JSON.stringify({
+        antwort_daten: JSON.stringify(daten),
+        status: status,
+        beantwortet_am: new Date().toISOString()
+      })
+    });
+    return res.ok;
+  } catch(e) { return false; }
+};
+
+// ── Stil-Variablen ──
+const fi = { width:"100%", padding:"9px 10px", border:"1px solid #ccc", borderRadius:"6px",
+  fontSize:"16px", fontFamily:"inherit", background:"#fff", boxSizing:"border-box", marginBottom:"8px" };
+
+const sHead = (text, color) => (
+  <div style={{ fontSize:"10px", fontWeight:"bold", color:"#fff", background: color || "#003366",
+    borderRadius:"5px", padding:"5px 10px", margin:"14px 0 8px", letterSpacing:"0.5px", textTransform:"uppercase" }}>
+    {text}
+  </div>
+);
+
+const ChipRow = ({ options, value, onChange, multi = false }) => (
+  <div style={{ display:"flex", flexWrap:"wrap", gap:"8px", marginBottom:"10px" }}>
+    {options.map(opt => {
+      const aktiv = multi ? (value||[]).includes(opt.v||opt) : value === (opt.v||opt);
+      return (
+        <div key={opt.v||opt} onClick={() => onChange(opt.v||opt)}
+          style={{ padding:"6px 14px", borderRadius:"6px", cursor:"pointer", fontSize:"11px", fontWeight:"bold",
+            backgroundColor: aktiv ? "#003366" : "#eee", color: aktiv ? "#fff" : "#333" }}>
+          {opt.l||opt}
+        </div>
+      );
+    })}
+  </div>
+);
+
+// ── Bürgergeld-Formular ──
+// ── Geburtstag-Dropdown (Tag / Monat / Jahr) ──
+function GeburtDropdown({ value, onChange, minJahr }) {
+  const MONATE = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  const parts = value ? value.split("-") : ["","",""];
+  const jahr = parts[0]||"", monat = parts[1]||"", tag = parts[2]||"";
+  const set = (j,m,t) => {
+    if (j&&m&&t) onChange(j+"-"+m+"-"+t);
+    else onChange("");
+  };
+  const sel = { padding:"9px 6px", border:"1px solid #ccc", borderRadius:"6px",
+    fontSize:"15px", fontFamily:"inherit", background:"#fff", marginBottom:"8px" };
+  const tage = Array.from({length:31},(_,i)=>String(i+1).padStart(2,"0"));
+  const aktJahr = new Date().getFullYear();
+  const vonJahr = minJahr || 1940;
+  const anzahlJahre = aktJahr - vonJahr + 1;
+  const jahre = Array.from({length:anzahlJahre},(_,i)=>String(aktJahr-i));
+  return (
+    <div style={{display:"flex",gap:"6px"}}>
+      <select style={{...sel,width:"72px"}} value={tag}
+        onChange={e=>set(jahr,monat,e.target.value)}>
+        <option value="">Tag</option>
+        {tage.map(t=><option key={t} value={t}>{parseInt(t)}</option>)}
+      </select>
+      <select style={{...sel,flex:1}} value={monat}
+        onChange={e=>set(jahr,e.target.value,tag)}>
+        <option value="">Monat</option>
+        {MONATE.map((m,i)=><option key={i} value={String(i+1).padStart(2,"0")}>{m}</option>)}
+      </select>
+      <select style={{...sel,width:"90px"}} value={jahr}
+        onChange={e=>set(e.target.value,monat,tag)}>
+        <option value="">Jahr</option>
+        {jahre.map(y=><option key={y} value={y}>{y}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function BuergergeldFormular({ vorausgefuellt, formularId, beraterMail }) {
+  const leer = {
+    bgVorname:"", bgName:"", bgGeburt:"", bgStaatsbuergerschaft:"", bgMail:"", bgTel:"",
+    bgStrasse:"", bgPlz:"", bgOrt:"",
+    bgFamilienstand:"", bgTrennungSeit:"",
+    bgWohnsituation:"", bgAnzahlPersonen:"",
+    bgHatKinder:"", bgKinder:[],
+    bgErwerbsstatus:"", bgArbeitgeber:"", bgEinkommenNetto:"", bgAlg1Betrag:"",
+    bgWeitereEinkuenfte:"", bgVermoegen:"",
+    bgMietverhaeltnis:"", bgMieteKalt:"", bgNebenkosten:"", bgHeizkosten:"", bgWohnflaeche:"",
+    bgSchwerbehindert:"", bgGdB:"", bgMerkzeichen:"",
+    bgMehrbedarf:"", bgMehrbedarfGrund:"",
+    bgSchulden:"", bgSchuldenBetrag:"", bgSchuldenRate:"",
+    bgAntragGestellt:"", bgAntragDatum:"", bgJobcenter:"",
+    bgBescheid:"", bgBescheidArt:"", bgBescheidDatum:"",
+    bgWiderspruch:"", bgWiderspruchDatum:"",
+    bgEingliederung:"",
+    bgAnliegen:[], bgNotizen:""
+  };
+
+  const [fd, setFd] = useState({ ...leer, ...vorausgefuellt });
+  const [sendet, setSendet] = useState(false);
+  const [gesendet, setGesendet] = useState(false);
+  const [fehler, setFehler] = useState("");
+
+  const upd = (k, v) => setFd(p => ({...p, [k]: v}));
+
+  const kindUpd = (idx, k, v) => setFd(p => {
+    const bgKinder = (p.bgKinder||[]).map((c,i) => i===idx ? {...c, [k]: v} : c);
+    return {...p, bgKinder};
+  });
+
+  const kindUmgangUpd = (idx, mi, v) => setFd(p => {
+    const bgKinder = (p.bgKinder||[]).map((c,i) => {
+      if (i !== idx) return c;
+      const arr = (c.umgangstage ? c.umgangstage.slice() : Array(12).fill(""));
+      arr[mi] = v;
+      return {...c, umgangstage: arr};
+    });
+    return {...p, bgKinder};
+  });
+
+  const addKind = () => setFd(p => ({
+    ...p, bgKinder: [...(p.bgKinder||[]), { vorname:"", nachname:"", geburt:"", wohnort:"", kindergeld:"", uvg:"" }]
+  }));
+
+  const removeKind = (idx) => setFd(p => ({...p, bgKinder: (p.bgKinder||[]).filter((_,i)=>i!==idx)}));
+
+  const toggleAnliegen = (opt) => setFd(p => {
+    const arr = p.bgAnliegen || [];
+    return {...p, bgAnliegen: arr.includes(opt) ? arr.filter(x => x !== opt) : [...arr, opt]};
+  });
+
+  const absenden = async () => {
+    const fehlendeFelder = [];
+    if (!fd.bgVorname) fehlendeFelder.push("Vorname");
+    if (!fd.bgName) fehlendeFelder.push("Nachname");
+    if (!fd.bgMail) fehlendeFelder.push("E-Mail");
+    if (fehlendeFelder.length > 0) { setFehler("Bitte ausfüllen:\n- " + fehlendeFelder.join("\n- ")); return; }
+    if (!SB_URL || !SB_KEY || !formularId) {
+      setFehler("⚠️ Kein gültiger Übermittlungslink. Bitte den Link erneut über den Berater anfordern – dieses Formular kann nicht direkt über die Datei versendet werden.");
+      return;
+    }
+    setFehler(""); setSendet(true);
+    const ok = await sbSpeichere(formularId, fd, "beantwortet");
+    setSendet(false);
+    if (ok) {
+      setGesendet(true);
+    } else {
+      setFehler("Fehler beim Senden. Bitte erneut versuchen oder den Berater kontaktieren.");
+    }
+  };
+
+  if (gesendet) return (
+    <div>
+      <div className="success-box">
+        <div style={{fontSize:"2em", marginBottom:"8px"}}>✅</div>
+        <strong>Vielen Dank!</strong><br/>
+        Ihre Angaben wurden erfolgreich übermittelt.<br/>
+        {beraterMail && <div style={{marginTop:"8px", fontSize:"12px"}}>Eine Kopie können Sie per E-Mail an <strong>{beraterMail}</strong> senden.</div>}
+      </div>
+      {beraterMail && (
+        <a href={"mailto:"+beraterMail+"?subject=Bürgergeld-Fragebogen ausgefüllt&body=Guten Tag, anbei mein ausgefüllter Bürgergeld-Fragebogen."}
+          className="btn btn-primary" style={{marginTop:"8px", display:"block", textAlign:"center", textDecoration:"none"}}>
+          ✉️ Per E-Mail zurücksenden
+        </a>
+      )}
+    </div>
+  );
+
+  const showEinkommen = ["angestellt","Vollzeit","Teilzeit","Minijob"].some(s => (fd.bgErwerbsstatus||"").includes(s));
+
+  return (
+    <div>
+      <div className="info-box">
+        ℹ️ Bitte füllen Sie diesen Fragebogen so vollständig wie möglich aus. Alle Angaben werden vertraulich behandelt und helfen Ihrem ISUV-Berater bei der Vorbereitung.
+      </div>
+      {fehler && <div className="error-box" style={{whiteSpace:"pre-line"}}>{fehler}</div>}
+
+      {/* ① Persönliche Daten */}
+      {sHead("① Persönliche Daten")}
+      <div className="card">
+        <div style={{display:"flex", gap:"10px"}}>
+          <div style={{flex:1}}>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Vorname *</label>
+            <input style={fi} placeholder="Vorname" value={fd.bgVorname} onChange={e=>upd("bgVorname",e.target.value)}/>
+          </div>
+          <div style={{flex:1}}>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Nachname *</label>
+            <input style={fi} placeholder="Nachname" value={fd.bgName} onChange={e=>upd("bgName",e.target.value)}/>
+          </div>
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Geburtsdatum</label>
+        <GeburtDropdown value={fd.bgGeburt} onChange={v=>upd("bgGeburt",v)}/>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Staatsangehörigkeit</label>
+        <input style={fi} placeholder="z.B. deutsch" value={fd.bgStaatsbuergerschaft} onChange={e=>upd("bgStaatsbuergerschaft",e.target.value)}/>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>E-Mail *</label>
+        <input style={fi} type="email" placeholder="name@beispiel.de" value={fd.bgMail} onChange={e=>upd("bgMail",e.target.value)}/>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Telefon</label>
+        <input style={fi} type="tel" placeholder="0170 1234567" value={fd.bgTel} onChange={e=>upd("bgTel",e.target.value)}/>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Straße & Hausnummer</label>
+        <input style={fi} placeholder="Musterstraße 1" value={fd.bgStrasse} onChange={e=>upd("bgStrasse",e.target.value)}/>
+        <div style={{display:"flex", gap:"10px"}}>
+          <div style={{width:"90px"}}>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>PLZ</label>
+            <input style={fi} placeholder="12345" value={fd.bgPlz} onChange={e=>upd("bgPlz",e.target.value)}/>
+          </div>
+          <div style={{flex:1}}>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Ort</label>
+            <input style={fi} placeholder="Stadt" value={fd.bgOrt} onChange={e=>upd("bgOrt",e.target.value)}/>
+          </div>
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Familienstand</label>
+        <select style={fi} value={fd.bgFamilienstand} onChange={e=>upd("bgFamilienstand",e.target.value)}>
+          <option value="">– bitte wählen –</option>
+          <option value="ledig">ledig</option>
+          <option value="verheiratet">verheiratet</option>
+          <option value="getrennt lebend">getrennt lebend</option>
+          <option value="geschieden">geschieden</option>
+          <option value="verwitwet">verwitwet</option>
+          <option value="eingetragene Lebenspartnerschaft">eingetragene Lebenspartnerschaft</option>
+        </select>
+        {(fd.bgFamilienstand==="getrennt lebend"||fd.bgFamilienstand==="geschieden") && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Getrennt seit</label>
+            <input style={fi} type="text" placeholder="z.B. Oktober 2025" value={fd.bgTrennungSeit} onChange={e=>upd("bgTrennungSeit",e.target.value)}/>
+          </>
+        )}
+      </div>
+
+      {/* ② Haushalt & BG */}
+      {sHead("② Haushalt & Bedarfsgemeinschaft")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>ℹ️ Was ist eine Bedarfsgemeinschaft?</strong><br/>
+          Alle Personen, die in einer Wohnung zusammenleben und gemeinsam wirtschaften, bilden eine Bedarfsgemeinschaft (BG). Dazu zählen z.&thinsp;B. Elternteile mit Kindern unter 25 Jahren sowie unverheiratete Partner. <strong>Wichtig:</strong> Kinder die sich zeitweise im Haushalt aufhalten (Umgangsrecht), können als <em>temporäre BG</em> nach § 7 Abs. 3a SGB II anerkannt werden – das kann den Regelbedarf erhöhen.
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Wohnsituation</label>
+        <select style={fi} value={fd.bgWohnsituation} onChange={e=>upd("bgWohnsituation",e.target.value)}>
+          <option value="">– bitte wählen –</option>
+          <option value="Allein lebend">Allein lebend</option>
+          <option value="Mit Kindern (alleinerziehend)">Mit Kindern (alleinerziehend)</option>
+          <option value="Mit Partner*in und Kindern">Mit Partner*in und Kindern</option>
+          <option value="Mit Partner*in (keine Kinder)">Mit Partner*in (keine Kinder)</option>
+          <option value="Bei Eltern / Verwandten">Bei Eltern / Verwandten</option>
+          <option value="Wohngemeinschaft">Wohngemeinschaft</option>
+        </select>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Anzahl Personen in der Bedarfsgemeinschaft (inkl. Sie)</label>
+        <input style={fi} type="number" min="1" max="10" placeholder="z.B. 3" value={fd.bgAnzahlPersonen} onChange={e=>upd("bgAnzahlPersonen",e.target.value)}/>
+      </div>
+
+      {/* ③ Kinder */}
+      {sHead("③ Kinder im Haushalt", "#00afad")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>💡 Unterhaltsvorschuss (UVG):</strong> Alleinerziehende können UVG beim Jugendamt beantragen, wenn der andere Elternteil keinen oder zu wenig Unterhalt zahlt. UVG wird bis zum 18. Lebensjahr gewährt (max. 72 Monate bis zum 12. Lebensjahr). <strong>Wichtig:</strong> UVG wird als Einkommen auf das Bürgergeld angerechnet, aber Kinderzuschlag (KiZ) ist vorrangig zu prüfen!
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"6px",display:"block"}}>Leben Kinder bei Ihnen?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgHatKinder}
+          onChange={v => { upd("bgHatKinder", v); if (v==="nein") upd("bgKinder",[]); }}/>
+
+        {fd.bgHatKinder==="ja" && (
+          <>
+            {(fd.bgKinder||[]).map((kind, idx) => (
+              <div key={idx} style={{backgroundColor:"#f0fdfd",borderRadius:"8px",padding:"12px",marginBottom:"10px",borderLeft:"3px solid #00afad"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                  <strong style={{fontSize:"13px",color:"#003366"}}>Kind {idx+1}</strong>
+                  <button onClick={()=>removeKind(idx)} style={{background:"none",border:"none",color:"#e53935",cursor:"pointer",fontSize:"18px",padding:0}}>×</button>
+                </div>
+                <div style={{display:"flex",gap:"10px"}}>
+                  <div style={{flex:1}}>
+                    <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Vorname</label>
+                    <input style={fi} value={kind.vorname||""} onChange={e=>kindUpd(idx,"vorname",e.target.value)}/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Nachname</label>
+                    <input style={fi} value={kind.nachname||""} onChange={e=>kindUpd(idx,"nachname",e.target.value)}/>
+                  </div>
+                </div>
+                <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Geburtsdatum</label>
+                <GeburtDropdown value={kind.geburt||""} onChange={v=>kindUpd(idx,"geburt",v)} minJahr={2000}/>
+                <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Wohnt das Kind bei Ihnen?</label>
+                <select style={fi} value={kind.wohnort||""} onChange={e=>kindUpd(idx,"wohnort",e.target.value)}>
+                  <option value="">– bitte wählen –</option>
+                  <option value="ja, vollständig">Ja, vollständig</option>
+                  <option value="Wechselmodell">Wechselmodell (abwechselnd)</option>
+                  <option value="nein">Nein (lebt beim anderen Elternteil)</option>
+                </select>
+
+                {/* Umgangstage-Kalender bei Wechselmodell */}
+                {kind.wohnort === "Wechselmodell" && (
+                  <div style={{backgroundColor:"#f0f8ff",border:"1px solid #bee5f8",borderRadius:"7px",padding:"10px",marginBottom:"8px"}}>
+                    <div style={{fontSize:"10px",fontWeight:"bold",color:"#003366",marginBottom:"6px"}}>📅 Umgangstage pro Monat</div>
+                    <div style={{fontSize:"10px",color:"#444",background:"#e8f4fd",border:"1px solid #bee5f8",borderRadius:"5px",padding:"7px 9px",marginBottom:"8px"}}>
+                      ℹ️ Tragen Sie die Tage ein, an denen das Kind für <strong>mehr als 12 Stunden</strong> bei Ihnen ist. Bei geteiltem Tag zählt der Haushalt, in dem das Kind <strong>übernachtet</strong> hat.
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"4px"}}>
+                      {MONATE_KURZ.map((m, mi) => (
+                        <div key={mi} style={{textAlign:"center"}}>
+                          <div style={{fontSize:"10px",color:"#555",marginBottom:"2px"}}>{m}</div>
+                          <input type="number" min="0" max="31"
+                            style={{width:"100%",padding:"4px",textAlign:"center",border:"1px solid #ccc",borderRadius:"4px",fontSize:"12px"}}
+                            value={(kind.umgangstage && kind.umgangstage[mi]) || ""}
+                            onChange={e=>kindUmgangUpd(idx,mi,e.target.value)}/>
+                        </div>
+                      ))}
+                    </div>
+                    {kind.umgangstage && kind.umgangstage.some(v=>v&&parseFloat(v)>0) && (
+                      <div style={{fontSize:"11px",color:"#003366",marginTop:"6px",fontWeight:"bold"}}>
+                        Ø {(kind.umgangstage.reduce((s,v)=>s+(parseFloat(v)||0),0)/12).toFixed(1)} Tage/Monat
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Kindergeld erhalten?</label>
+                <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={kind.kindergeld} onChange={v=>kindUpd(idx,"kindergeld",v)}/>
+                <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Unterhaltsvorschuss (UVG) beantragt?</label>
+                <ChipRow options={["ja","nein","in Beantragung"]} value={kind.uvg} onChange={v=>kindUpd(idx,"uvg",v)}/>
+              </div>
+            ))}
+            <button onClick={addKind}
+              style={{width:"100%",padding:"10px",backgroundColor:"#e8f4fd",color:"#003366",border:"2px dashed #003366",borderRadius:"8px",cursor:"pointer",fontWeight:"bold",fontSize:"12px",marginBottom:"8px"}}>
+              + Weiteres Kind hinzufügen
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ④ Beschäftigung & Einkommen */}
+      {sHead("④ Beschäftigung & Einkommen")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>💡 Was wird angerechnet?</strong> Nicht das gesamte Einkommen wird auf das Bürgergeld angerechnet. Es gibt Freibeträge: Bei Erwerbstätigkeit bleiben <strong>100 € monatlich</strong> anrechnungsfrei, darüber hinaus 20 % bis 1.000 € und 10 % bis 1.200 € Bruttogehalt (§ 11b SGB II). Unterhaltszahlungen, die Sie <em>leisten</em>, können ebenfalls abgezogen werden.<br/>
+          <strong>Vermögen:</strong> Freibetrag 15.000 € je Person in der BG (Stand 2024). Ein selbst bewohntes Eigenheim ist grundsätzlich geschützt.
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Aktueller Erwerbsstatus</label>
+        <select style={fi} value={fd.bgErwerbsstatus} onChange={e=>upd("bgErwerbsstatus",e.target.value)}>
+          <option value="">– bitte wählen –</option>
+          <option value="Arbeitslos (kein ALG I)">Arbeitslos (kein ALG I)</option>
+          <option value="ALG I Bezug">ALG I (Arbeitslosengeld I)</option>
+          <option value="Bürgergeld (laufend)">Bürgergeld (bereits in Bezug)</option>
+          <option value="Geringfügig beschäftigt (Minijob)">Geringfügig beschäftigt (Minijob)</option>
+          <option value="Teilzeit angestellt">Teilzeit angestellt</option>
+          <option value="Vollzeit angestellt">Vollzeit angestellt</option>
+          <option value="Selbständig">Selbständig / Freiberuflich</option>
+          <option value="Elternzeit">Elternzeit / Erziehungsgeld</option>
+          <option value="Ausbildung / Studium">Ausbildung / Studium</option>
+          <option value="Erwerbsminderungsrente">Erwerbsminderungsrente</option>
+          <option value="Krankengeld / AU">Krankengeld / Krankschreibung (AU)</option>
+          <option value="Sonstiges">Sonstiges</option>
+        </select>
+        {showEinkommen && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Arbeitgeber</label>
+            <input style={fi} placeholder="Firma / Behörde" value={fd.bgArbeitgeber} onChange={e=>upd("bgArbeitgeber",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Nettoeinkommen (€/Monat)</label>
+            <input style={fi} type="number" placeholder="z.B. 800" value={fd.bgEinkommenNetto} onChange={e=>upd("bgEinkommenNetto",e.target.value)}/>
+          </>
+        )}
+        {fd.bgErwerbsstatus==="ALG I Bezug" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>ALG I monatlicher Betrag (€)</label>
+            <input style={fi} type="number" placeholder="z.B. 900" value={fd.bgAlg1Betrag} onChange={e=>upd("bgAlg1Betrag",e.target.value)}/>
+          </>
+        )}
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Weitere Einnahmen (Unterhalt, Rente, Sonstige in €/Monat)</label>
+        <input style={fi} type="number" placeholder="0" value={fd.bgWeitereEinkuenfte} onChange={e=>upd("bgWeitereEinkuenfte",e.target.value)}/>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Vermögen (Konten, Sparbücher, Depot in €)</label>
+        <input style={fi} type="number" placeholder="z.B. 3500" value={fd.bgVermoegen} onChange={e=>upd("bgVermoegen",e.target.value)}/>
+        <div style={{fontSize:"10px",color:"#888",marginTop:"-4px",marginBottom:"8px"}}>ℹ️ Freibetrag: 15.000 € je Person in der BG (Stand 2024)</div>
+      </div>
+
+      {/* ⑤ Wohnen & KdU */}
+      {sHead("⑤ Wohnen & Kosten der Unterkunft (KdU)")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>⚖️ Angemessenheit der Wohnkosten (§ 22 SGB II):</strong> Das Jobcenter übernimmt nur <em>angemessene</em> Wohnkosten. Die Obergrenzen richten sich nach Wohnort, Haushaltsgröße und örtlichem Mietspiegel. Bei unangemessen hoher Miete erhalten Sie eine Kostensenkungsaufforderung mit üblicherweise 6 Monaten Frist. <strong>Wichtig:</strong> Heizkosten werden separat übernommen, solange sie nicht unangemessen hoch sind.
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Mietverhältnis</label>
+        <select style={fi} value={fd.bgMietverhaeltnis} onChange={e=>upd("bgMietverhaeltnis",e.target.value)}>
+          <option value="">– bitte wählen –</option>
+          <option value="Mieter (Hauptmietvertrag)">Mieter (Hauptmietvertrag)</option>
+          <option value="Untermieter">Untermieter</option>
+          <option value="Eigentümer">Eigentümer (eigene Immobilie)</option>
+          <option value="Kostenlos untergebracht">Kostenlos untergebracht (Eltern/Familie)</option>
+          <option value="Obdachlos / Notunterkunft">Obdachlos / Notunterkunft</option>
+        </select>
+        {(fd.bgMietverhaeltnis==="Mieter (Hauptmietvertrag)"||fd.bgMietverhaeltnis==="Untermieter") && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Kaltmiete (€/Monat)</label>
+            <input style={fi} type="number" placeholder="z.B. 600" value={fd.bgMieteKalt} onChange={e=>upd("bgMieteKalt",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Nebenkosten / Betriebskosten (€/Monat)</label>
+            <input style={fi} type="number" placeholder="z.B. 150" value={fd.bgNebenkosten} onChange={e=>upd("bgNebenkosten",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Heizkosten (€/Monat, falls separat)</label>
+            <input style={fi} type="number" placeholder="z.B. 80" value={fd.bgHeizkosten} onChange={e=>upd("bgHeizkosten",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Wohnfläche (m²)</label>
+            <input style={fi} type="number" placeholder="z.B. 55" value={fd.bgWohnflaeche} onChange={e=>upd("bgWohnflaeche",e.target.value)}/>
+          </>
+        )}
+      </div>
+
+      {/* ⑥ Besondere Bedarfe */}
+      {sHead("⑥ Besondere Bedarfe & Zuschläge")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>💡 Mehrbedarf nach § 21 SGB II:</strong> Folgende Gruppen haben Anspruch auf einen Mehrbedarf-Zuschlag:<br/>
+          • <strong>Alleinerziehende</strong> mit Kindern unter 7 Jahren oder 3+ Kindern: 36 % des Regelbedarfs<br/>
+          • <strong>Schwangere</strong> ab der 13. Woche: 17 %<br/>
+          • <strong>Schwerbehinderung</strong> mit Merkzeichen G, aG, H oder Bl: 17 %<br/>
+          • <strong>Kostenaufwändige Ernährung</strong> (z.&thinsp;B. Diabetes, Zöliakie): individuell
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Schwerbehinderung (GdB ≥ 50)?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgSchwerbehindert} onChange={v=>upd("bgSchwerbehindert",v)}/>
+        {fd.bgSchwerbehindert==="ja" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Grad der Behinderung (GdB)</label>
+            <input style={fi} placeholder="z.B. 50, 70, 100" value={fd.bgGdB} onChange={e=>upd("bgGdB",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Merkzeichen (z.B. G, aG, H, RF)</label>
+            <input style={fi} placeholder="z.B. G, H" value={fd.bgMerkzeichen} onChange={e=>upd("bgMerkzeichen",e.target.value)}/>
+          </>
+        )}
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Mehrbedarf wegen Erkrankung / Besonderer Diät?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgMehrbedarf} onChange={v=>upd("bgMehrbedarf",v)}/>
+        {fd.bgMehrbedarf==="ja" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Grund des Mehrbedarfs</label>
+            <input style={fi} placeholder="z.B. Diabetes, kostspielige Ernährung" value={fd.bgMehrbedarfGrund} onChange={e=>upd("bgMehrbedarfGrund",e.target.value)}/>
+          </>
+        )}
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Schulden / Laufende Verbindlichkeiten?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgSchulden} onChange={v=>upd("bgSchulden",v)}/>
+        {fd.bgSchulden==="ja" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Gesamtbetrag Schulden (€)</label>
+            <input style={fi} type="number" placeholder="z.B. 5000" value={fd.bgSchuldenBetrag} onChange={e=>upd("bgSchuldenBetrag",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Monatliche Schuldentilgung (€)</label>
+            <input style={fi} type="number" placeholder="z.B. 100" value={fd.bgSchuldenRate} onChange={e=>upd("bgSchuldenRate",e.target.value)}/>
+          </>
+        )}
+      </div>
+
+      {/* ⑦ Jobcenter & Verfahren */}
+      {sHead("⑦ Jobcenter & Aktueller Stand")}
+      <div className="card">
+        <div className="warn-box" style={{marginBottom:"10px"}}>
+          <strong>⚠️ Widerspruchsfrist beachten!</strong> Gegen Bescheide des Jobcenters kann innerhalb von <strong>1 Monat</strong> nach Bekanntgabe Widerspruch eingelegt werden (§ 84 SGG). Ein Widerspruch hat <em>aufschiebende Wirkung</em> bei Sanktionsbescheiden, aber <strong>nicht</strong> bei Aufhebungs- und Erstattungsbescheiden. Lassen Sie Bescheide zeitnah prüfen!
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Bereits Bürgergeld-Antrag gestellt?</label>
+        <ChipRow options={["ja","nein","in Bearbeitung"]} value={fd.bgAntragGestellt} onChange={v=>upd("bgAntragGestellt",v)}/>
+        {fd.bgAntragGestellt==="ja" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Datum der Antragstellung</label>
+            <input style={fi} type="date" value={fd.bgAntragDatum} onChange={e=>upd("bgAntragDatum",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Zuständiges Jobcenter</label>
+            <input style={fi} placeholder="z.B. Jobcenter München" value={fd.bgJobcenter} onChange={e=>upd("bgJobcenter",e.target.value)}/>
+          </>
+        )}
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Liegt ein Bescheid / Ablehnung vor?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgBescheid} onChange={v=>upd("bgBescheid",v)}/>
+        {fd.bgBescheid==="ja" && (
+          <>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Art des Bescheids</label>
+            <select style={fi} value={fd.bgBescheidArt} onChange={e=>upd("bgBescheidArt",e.target.value)}>
+              <option value="">– bitte wählen –</option>
+              <option value="Bewilligung">Bewilligung (positiv)</option>
+              <option value="Ablehnung">Ablehnung</option>
+              <option value="Teilbewilligung">Teilbewilligung</option>
+              <option value="Sanktion">Sanktion / Leistungsminderung</option>
+              <option value="Aufhebung / Erstattung">Aufhebung & Erstattungsforderung</option>
+            </select>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Datum des Bescheids</label>
+            <input style={fi} type="date" value={fd.bgBescheidDatum} onChange={e=>upd("bgBescheidDatum",e.target.value)}/>
+            <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Widerspruch eingelegt?</label>
+            <ChipRow options={["ja","nein","geplant"]} value={fd.bgWiderspruch} onChange={v=>upd("bgWiderspruch",v)}/>
+            {fd.bgWiderspruch==="ja" && (
+              <>
+                <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Datum Widerspruch</label>
+                <input style={fi} type="date" value={fd.bgWiderspruchDatum} onChange={e=>upd("bgWiderspruchDatum",e.target.value)}/>
+              </>
+            )}
+          </>
+        )}
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px",display:"block"}}>Eingliederungsvereinbarung / Kooperationsplan vorhanden?</label>
+        <ChipRow options={[{v:"ja",l:"Ja"},{v:"nein",l:"Nein"}]} value={fd.bgEingliederung} onChange={v=>upd("bgEingliederung",v)}/>
+      </div>
+
+      {/* ⑧ Anliegen */}
+      {sHead("⑧ Anliegen & Sonstiges")}
+      <div className="card">
+        <div className="info-box" style={{marginBottom:"10px"}}>
+          <strong>🔒 Datenschutz & Schweigepflicht:</strong> Alle Angaben werden vertraulich behandelt und ausschließlich zur ISUV-internen Beratungsvorbereitung genutzt. Ihr ISUV-Berater unterliegt der Verschwiegenheit. Für eine vollumfängliche Beratung oder die Kommunikation mit Behörden kann ggf. eine <strong>Schweigepflichtentbindung</strong> erforderlich sein.
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"6px",display:"block"}}>Warum wenden Sie sich an den ISUV? (Mehrfachauswahl möglich)</label>
+        <div style={{display:"flex", flexDirection:"column", gap:"6px", marginBottom:"10px"}}>
+          {[
+            "Bürgergeld-Antrag stellen / vorbereiten",
+            "Bescheid prüfen / Widerspruch einlegen",
+            "Sanktion anfechten",
+            "Anrechnung von Einkommen / Unterhalt klären",
+            "Unterhaltsberechnung im Zusammenhang mit Bürgergeld",
+            "KdU (Wohnkosten) – Streit mit Jobcenter",
+            "Sonstiges"
+          ].map(opt => {
+            const aktiv = (fd.bgAnliegen||[]).includes(opt);
+            return (
+              <div key={opt} onClick={()=>toggleAnliegen(opt)}
+                style={{display:"flex",alignItems:"center",gap:"10px",cursor:"pointer",padding:"8px 10px",
+                  backgroundColor:aktiv?"#e8f0fb":"#f9f9f9",borderRadius:"7px",border:"1px solid "+(aktiv?"#003366":"#eee")}}>
+                <div style={{width:"16px",height:"16px",borderRadius:"3px",border:"2px solid "+(aktiv?"#003366":"#ccc"),
+                  backgroundColor:aktiv?"#003366":"#fff",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {aktiv && <span style={{color:"#fff",fontSize:"10px",fontWeight:"bold"}}>✓</span>}
+                </div>
+                <span style={{fontSize:"12px"}}>{opt}</span>
+              </div>
+            );
+          })}
+        </div>
+        <label style={{fontSize:"11px",color:"#555",fontWeight:"normal",marginBottom:"3px"}}>Anmerkungen / Fragen</label>
+        <textarea style={fi} placeholder="Weitere Details, Fragen, besondere Umstände..."
+          value={fd.bgNotizen} onChange={e=>upd("bgNotizen",e.target.value)}/>
+      </div>
+
+      {/* Absenden */}
+      <button className="btn btn-primary" onClick={absenden} disabled={sendet} style={{marginTop:"8px"}}>
+        {sendet ? "Wird gesendet…" : "✅ Fragebogen absenden"}
+      </button>
+      {beraterMail && (
+        <a href={"mailto:"+beraterMail+"?subject=Bürgergeld-Fragebogen ausgefüllt&body=Guten Tag, ich habe meinen Fragebogen ausgefüllt."}
+          className="btn btn-success" style={{marginTop:"8px",display:"block",textAlign:"center",textDecoration:"none"}}>
+          ✉️ Per E-Mail an Berater*in zurücksenden
+        </a>
+      )}
+      <p className="pflicht-info">* Pflichtfelder · Daten werden verschlüsselt übertragen</p>
+    </div>
+  );
+}
+
+// ── Haupt-App ──
+function FormularApp() {
+  const [status, setStatus] = useState("laden");
+  const [formular, setFormular] = useState(null);
+  const [fehlerText, setFehlerText] = useState("");
+
+  useEffect(() => {
+    if (_TEST) {
+      setFormular({ typ:"buergergeld", vorausgefuellt:JSON.stringify(_TEST_VORAUSGEFUELLT), berater_mail:"", label:"Test-Formular" });
+      setStatus("bereit");
+      return;
+    }
+    if (!FORMULAR_ID) { setStatus("kein_id"); return; }
+    if (!SB_URL || !SB_KEY) { setStatus("fehler"); setFehlerText("Fehlende Verbindungsdaten. Bitte Link erneut anfordern."); return; }
+    sbLade(FORMULAR_ID).then(row => {
+      if (!row) { setStatus("fehler"); setFehlerText("Formular nicht gefunden. Möglicherweise abgelaufen."); return; }
+      if (row.status === "beantwortet") { setStatus("abgeschlossen"); setFormular(row); return; }
+      setFormular(row);
+      setStatus("bereit");
+    });
+  }, []);
+
+  const vorausgefuellt = formular ? (() => { try { return JSON.parse(formular.vorausgefuellt || "{}"); } catch(e){ return {}; } })() : {};
+  const beraterMail = formular ? (formular.berater_mail || "") : "";
+  const label = formular ? (formular.label || "Bürgergeld-Fragebogen") : "";
+  const typ = formular ? formular.typ : "";
+
+  return (
+    <div>
+      <div className="header">
+        <img src={LOGO} alt="ISUV" onError={e=>e.target.style.display="none"}/>
+        <h2>ISUV Anspruchslotse</h2>
+        {formular && <p>{label}</p>}
+      </div>
+
+      {status === "laden" && <div className="loading"><div className="spinner"></div><p>Wird geladen…</p></div>}
+
+      {status === "fehler" && <div className="error-box"><strong>⚠️ Fehler</strong><br/>{fehlerText}</div>}
+
+      {status === "kein_id" && (
+        <div className="error-box">
+          <strong>⚠️ Kein Formular-Link</strong><br/><br/>
+          Diese Seite kann nur über einen persönlichen Link geöffnet werden, den Ihr ISUV-Berater Ihnen per E-Mail oder WhatsApp zugeschickt hat.<br/><br/>
+          <span style={{fontSize:"11px",color:"#888"}}>Bitte öffnen Sie den Link direkt aus Ihrer Nachricht.</span>
+        </div>
+      )}
+
+      {status === "abgeschlossen" && (
+        <div className="success-box">
+          <div style={{fontSize:"2em",marginBottom:"8px"}}>✅</div>
+          <strong>Formular abgeschlossen</strong><br/>
+          Dieses Formular wurde bereits vollständig ausgefüllt und übermittelt.
+        </div>
+      )}
+
+      {status === "bereit" && typ === "buergergeld" && (
+        <BuergergeldFormular
+          vorausgefuellt={vorausgefuellt}
+          formularId={FORMULAR_ID}
+          beraterMail={beraterMail}
+        />
+      )}
+
+      {status === "bereit" && typ !== "buergergeld" && (
+        <div className="error-box">
+          Falscher Formulartyp ({typ}). Bitte den passenden Link verwenden.
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(FormularApp), document.getElementById("root"));
+</script>
+</body>
+</html>
