@@ -1,0 +1,683 @@
+<!-- saved from url=(0022)http://internet.e-mail -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ISUV – Antrag auf vorläufigen Leistungsbescheid</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f0f4f8; color:#222; line-height:1.6; -webkit-font-smoothing:antialiased; }
+    #root { max-width:640px; margin:0 auto; padding:16px 16px 80px; }
+    .card { background:#fff; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.07); padding:16px; margin-bottom:12px; }
+    .header { text-align:center; padding:20px 16px 14px; background:#fff; border-radius:12px; margin-bottom:14px; box-shadow:0 2px 10px rgba(0,0,0,0.07); }
+    .header img { width:110px; height:auto; margin-bottom:8px; }
+    .header h2 { font-size:15px; color:#003366; margin:0; }
+    .header p { font-size:11px; color:#666; margin-top:3px; }
+    .spinner { width:32px; height:32px; border:3px solid #e0e0e0; border-top-color:#003366; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading { text-align:center; padding:60px 20px; color:#666; }
+    .error-box { background:#ffebee; border:1px solid #e53935; border-radius:8px; padding:14px; margin:10px 0; color:#b71c1c; font-size:13px; }
+    .success-box { background:#e8f5e9; border:1px solid #2e7d32; border-radius:8px; padding:20px; margin:10px 0; color:#1b5e20; font-size:13px; text-align:center; }
+    .info-box { background:#e0f7fa; border:1px solid #80deea; border-radius:7px; padding:10px 12px; font-size:11px; color:#006064; margin-bottom:10px; }
+    .warn-box { background:#fff8e1; border:1px solid #ffd54f; border-radius:7px; padding:10px 12px; font-size:11px; color:#6d4c00; margin-bottom:10px; }
+    .recht-box { background:#e8f0fb; border:1px solid #4a7bbf; border-radius:7px; padding:10px 12px; font-size:11px; color:#003366; margin-bottom:10px; }
+    .btn { width:100%; padding:13px; border:none; border-radius:8px; font-size:14px; font-weight:bold; cursor:pointer; margin-top:6px; font-family:inherit; }
+    .btn-primary { background:#003366; color:#fff; }
+    .btn-success { background:#2e7d32; color:#fff; }
+    .btn-outline { background:#fff; color:#003366; border:2px solid #003366; }
+    label { font-size:12px; font-weight:bold; display:block; margin-bottom:4px; color:#444; }
+    input,select,textarea { width:100%; padding:9px 10px; margin-bottom:8px; border-radius:6px; border:1px solid #ccc; font-size:16px !important; font-family:inherit; background:#fff; box-sizing:border-box; }
+    input:focus,select:focus,textarea:focus { outline:none; border-color:#003366; }
+    textarea { height:75px; resize:vertical; }
+    .sec { font-size:10px; font-weight:bold; color:#fff; background:#003366; border-radius:5px; padding:5px 10px; margin:14px 0 8px; letter-spacing:0.5px; text-transform:uppercase; }
+    .sec-teal { background:#00796b; }
+    .chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .chip { padding:6px 14px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; border:1.5px solid #ddd; background:#f5f7fa; color:#444; transition:all 0.15s; }
+    .chip.aktiv { background:#003366; color:#fff; border-color:#003366; }
+    .chip.warn { border-color:#f57c00; }
+    .chip.warn.aktiv { background:#f57c00; color:#fff; border-color:#f57c00; }
+    .checkbox-row { display:flex; align-items:flex-start; gap:10px; padding:9px 10px; background:#f0f7ff; border-radius:8px; border:1px solid #c5d8f0; margin-bottom:7px; cursor:pointer; }
+    .checkbox-row.aktiv { background:#e8f0fb; border-color:#003366; }
+    .checkbox-box { width:20px; height:20px; border:2px solid #003366; border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; margin-top:1px; background:#fff; }
+    .checkbox-box.aktiv { background:#003366; }
+    .fortschritt-bar { height:6px; background:#e0e0e0; border-radius:3px; overflow:hidden; margin-bottom:14px; }
+    .fortschritt-fill { height:100%; background:linear-gradient(90deg,#003366,#00afad); border-radius:3px; transition:width 0.4s; }
+    .sig-area { border:2px solid #003366; border-radius:8px; background:#f9faff; position:relative; overflow:hidden; touch-action:none; }
+    .sig-canvas { width:100%; height:100px; display:block; cursor:crosshair; touch-action:none; }
+    .pflicht-info { font-size:10px; color:#999; text-align:center; margin-top:8px; }
+    .g2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .preview-box { background:#f8f9ff; border:1px solid #003366; border-radius:8px; padding:12px; font-size:11px; line-height:1.8; color:#222; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const urlParams = new URLSearchParams(window.location.search);
+const FORMULAR_ID = urlParams.get("id") || "";
+const SB_URL      = urlParams.get("sb")  || "";
+const SB_KEY      = urlParams.get("key") || "";
+const _TEST       = !FORMULAR_ID;
+
+const LOGO = "https://anspruchslotse.github.io/isuv-anspruchslotse/isuv-logo.png";
+const sbH  = () => ({"Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY});
+
+const sbLade = async id => {
+  if (!SB_URL||!SB_KEY||!id) return null;
+  try {
+    const r = await fetch(SB_URL+"/rest/v1/formulare?formular_id=eq."+encodeURIComponent(id),{headers:sbH()});
+    if (!r.ok) return null; const rows=await r.json(); return rows&&rows[0]?rows[0]:null;
+  } catch(e){return null;}
+};
+const sbSpeichere = async (id,daten,status) => {
+  if (!SB_URL||!SB_KEY) return false;
+  try {
+    const r=await fetch(SB_URL+"/rest/v1/formulare?formular_id=eq."+encodeURIComponent(id),{
+      method:"PATCH",headers:{...sbH(),"Prefer":"return=minimal"},
+      body:JSON.stringify({antwort_daten:JSON.stringify(daten),status,beantwortet_am:new Date().toISOString()})
+    }); return r.ok;
+  } catch(e){return false;}
+};
+
+// ── Chip-Button ──
+function Chip({label,aktiv,onToggle,warn}) {
+  return <div className={"chip"+(aktiv?" aktiv":"")+(warn?" warn":"")} onClick={onToggle}>{aktiv?"✓ ":""}{label}</div>;
+}
+
+// ── Checkbox ──
+function CB({checked,onChange,children}) {
+  return (
+    <div className={"checkbox-row"+(checked?" aktiv":"")} onClick={()=>onChange(!checked)}>
+      <div className={"checkbox-box"+(checked?" aktiv":"")}>{checked&&<span style={{color:"#fff",fontSize:"12px",fontWeight:"bold"}}>✓</span>}</div>
+      <div style={{fontSize:"12px",color:"#333",lineHeight:1.5}}>{children}</div>
+    </div>
+  );
+}
+
+// ── Unterschriftspad ──
+function SigPad({label,value,onChange}) {
+  const ref=useRef(null); const drawing=useRef(false); const last=useRef(null);
+  useEffect(()=>{
+    const cv=ref.current; if(!cv)return; const ctx=cv.getContext("2d"); ctx.clearRect(0,0,cv.width,cv.height);
+    if(value){const img=new Image();img.onload=()=>ctx.drawImage(img,0,0);img.src=value;}
+  },[value]);
+  const gp=(cv,e)=>{const r=cv.getBoundingClientRect();const sx=cv.width/r.width,sy=cv.height/r.height;const s=e.touches?e.touches[0]:e;return{x:(s.clientX-r.left)*sx,y:(s.clientY-r.top)*sy};};
+  const start=e=>{e.preventDefault();drawing.current=true;last.current=gp(ref.current,e);};
+  const draw=e=>{e.preventDefault();if(!drawing.current)return;const cv=ref.current;const ctx=cv.getContext("2d");const p=gp(cv,e);ctx.beginPath();ctx.strokeStyle="#003366";ctx.lineWidth=2.5;ctx.lineCap="round";ctx.moveTo(last.current.x,last.current.y);ctx.lineTo(p.x,p.y);ctx.stroke();last.current=p;};
+  const stop=e=>{if(!drawing.current)return;drawing.current=false;onChange(ref.current.toDataURL());};
+  const clear=()=>{ref.current.getContext("2d").clearRect(0,0,ref.current.width,ref.current.height);onChange("");};
+  return (
+    <div style={{marginBottom:"10px"}}>
+      <div style={{fontSize:"11px",fontWeight:"bold",color:"#003366",marginBottom:"4px"}}>{label}</div>
+      <div className="sig-area">
+        <canvas ref={ref} width={560} height={120} className="sig-canvas"
+          onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
+          onTouchStart={start} onTouchMove={draw} onTouchEnd={stop}/>
+        {!value&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",color:"#bbb",fontSize:"12px",pointerEvents:"none",textAlign:"center"}}>✍️ Hier unterschreiben</div>}
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"4px"}}>
+        <div style={{fontSize:"10px",color:"#888"}}>Mit Finger oder Maus unterschreiben</div>
+        <button onClick={clear} style={{fontSize:"10px",color:"#e53935",background:"none",border:"1px solid #e53935",borderRadius:"4px",padding:"2px 8px",cursor:"pointer"}}>✕ Löschen</button>
+      </div>
+      {value&&<div style={{fontSize:"10px",color:"#2e7d32",marginTop:"2px"}}>✅ Unterschrift vorhanden</div>}
+    </div>
+  );
+}
+
+// ── Fortschritt ──
+function Fort({pct}){return <div className="fortschritt-bar"><div className="fortschritt-fill" style={{width:pct+"%"}}/></div>;}
+
+// ══════════════════════════════════════════════
+// HAUPT-FORMULAR
+// ══════════════════════════════════════════════
+function VorlaeufigFormular({vf, formularId, beraterName}) {
+  const SCHRITTE = 4;
+  const [schritt,  setSchritt]  = useState(1);
+  const [sendet,   setSendet]   = useState(false);
+  const [gesendet, setGesendet] = useState(false);
+  const [fehler,   setFehler]   = useState("");
+
+  // ── SCHRITT 1: Antragsteller & Behörde ──
+  const [vorname,    setVorname]    = useState(vf.vorname||"");
+  const [nachname,   setNachname]   = useState(vf.name||"");
+  const [geburt,     setGeburt]     = useState(vf.geburt||"");
+  const [strasse,    setStrasse]    = useState(vf.strasse||"");
+  const [plz,        setPlz]        = useState(vf.plz||"");
+  const [ort,        setOrt]        = useState(vf.ort||"");
+  const [mail,       setMail]       = useState(vf.mail||"");
+  const [tel,        setTel]        = useState(vf.tel||"");
+  const [bgnr,       setBgnr]       = useState(vf.bgnr||"");           // Bedarfsgemeinschafts-Nr.
+  const [adressat,   setAdressat]   = useState(vf.adressat||"jobcenter"); // jobcenter | sozialamt
+  const [behoerde,   setBehoerde]   = useState(vf.behoerde||"");       // Name der Behörde
+  const [behoerdeOrt,setBehoerdeOrt]= useState(vf.behoerdeOrt||"");
+
+  // ── SCHRITT 2: Rechtsgrundlage & Situation ──
+  const [rechtsgrundlage, setRechtsgrundlage] = useState(vf.rechtsgrundlage||""); // 41a_sgb2 | 43_sgb1 | beide
+  const [begruendungen,   setBegruendungen]   = useState(vf.begruendungen||[]);
+  const BEGRUENDUNGEN = [
+    { id:"unterhalt_ungeklaert",  label:"Unterhalt ungeklärt / nicht tituliert",    text:"Der Kindes-/Ehegattenunterhalt ist derzeit nicht tituliert und wird noch gerichtlich geltend gemacht. Die Höhe des anzurechnenden Unterhaltseinkommens ist damit ungewiss." },
+    { id:"einkommen_schwankend",  label:"Einkommen schwankend / nicht nachgewiesen", text:"Das Einkommen des Antragstellers bzw. der Gegenseite ist aufgrund von Schwankungen (z.B. schwankende Überstunden, unregelmäßige Selbstständigkeit, laufendes Insolvenzverfahren) derzeit nicht abschließend nachweisbar." },
+    { id:"zustaendigkeit",        label:"Zuständigkeit zwischen Jobcenter und Sozialamt ungeklärt", text:"Es besteht Unklarheit über die sachliche Zuständigkeit zwischen Jobcenter (SGB II) und Sozialamt (SGB XII). Ein vorläufiger Bescheid wird beantragt, um eine Unterbrechung der Leistungen zu verhindern." },
+    { id:"scheidung_laeuft",      label:"Scheidungsverfahren läuft / Vermögen ungeklärt", text:"Das Scheidungsverfahren ist noch nicht abgeschlossen. Die Vermögensauseinandersetzung (Zugewinnausgleich, Hausrat, Immobilien) ist noch offen und beeinflusst die anzurechnenden Vermögensverhältnisse." },
+    { id:"unterhalt_ausgefallen", label:"Unterhaltszahlungen ausgefallen / unregelmäßig", text:"Titulierte Unterhaltsleistungen werden derzeit nicht oder nur unregelmäßig erbracht. Die Einkommenssituation des Haushalts ist damit erheblich eingeschränkt und nicht planbar." },
+    { id:"wechselmodell",         label:"Wechselmodell / geteilte Betreuung ungeklärt", text:"Die Betreuungsaufteilung im Wechselmodell ist noch nicht gerichtlich geregelt. Hierdurch ist die Kostentragung für Kinder (Kindergeld, Unterhalt, Mehrbedarf) und die Haushaltsgröße noch nicht abschließend bestimmbar." },
+    { id:"erwerb_unsicher",       label:"Erwerbssituation unsicher (Kündigung / Kurzarbeit)", text:"Der Antragsteller befindet sich in einem laufenden Kündigungsschutzverfahren bzw. ist von Kurzarbeit betroffen. Das künftige Erwerbseinkommen ist damit noch nicht verlässlich bezifferbar." },
+    { id:"sonstige",              label:"Sonstige ungeklärte Umstände",               text:"" },
+  ];
+  const toggleBeg = id => setBegruendungen(p => p.includes(id) ? p.filter(x=>x!==id) : [...p,id]);
+
+  const [sonstigeText, setSonstigeText] = useState(vf.sonstigeText||"");
+
+  // ── SCHRITT 3: Einkommensdaten & Kinder ──
+  const [ekNetto,      setEkNetto]      = useState(vf.ekNetto||"");
+  const [ekArt,        setEkArt]        = useState(vf.ekArt||"");
+  const [miete,        setMiete]        = useState(vf.miete||"");
+  const [anzKinder,    setAnzKinder]    = useState(vf.anzKinder||"");
+  const [kindergeld,   setKindergeld]   = useState(vf.kindergeld||"");
+  const [unterhalt,    setUnterhalt]    = useState(vf.unterhalt||"");
+  const [uvg,          setUvg]          = useState(vf.uvg||"");
+  const [zeitraumVon,  setZeitraumVon]  = useState(vf.zeitraumVon||"");
+  const [zeitraumBis,  setZeitraumBis]  = useState(vf.zeitraumBis||"");
+  const [ergaenzung,   setErgaenzung]   = useState(vf.ergaenzung||"");
+
+  // ── SCHRITT 4: Vorschau & Unterschrift ──
+  const [sigData,      setSigData]      = useState("");
+  const [sigOrt,       setSigOrt]       = useState(vf.ort||"");
+  const [sigDatum,     setSigDatum]     = useState(new Date().toLocaleDateString("de-DE"));
+
+  const pct = Math.round((schritt/SCHRITTE)*100);
+
+  // ── Antrag-Text generieren ──
+  const antragText = useMemo(() => {
+    const adressatLabel = adressat==="jobcenter" ? "Jobcenter" : "Sozialamt";
+    const rgLabel = rechtsgrundlage==="41a_sgb2"
+      ? "§ 41a SGB II (Vorläufige Entscheidung)"
+      : rechtsgrundlage==="43_sgb1"
+      ? "§ 43 SGB I (Vorläufige Leistungen)"
+      : "§ 41a SGB II i.V.m. § 43 SGB I";
+
+    let begruendungsText = begruendungen.map(id => {
+      const b = BEGRUENDUNGEN.find(x=>x.id===id);
+      if (!b) return "";
+      if (id==="sonstige") return sonstigeText ? "- "+sonstigeText : "";
+      return "- "+b.text;
+    }).filter(Boolean).join("\n\n");
+
+    const zeitraum = (zeitraumVon||zeitraumBis)
+      ? `\nZeitraum: ${zeitraumVon||"[von]"} bis ${zeitraumBis||"[bis]"}`
+      : "";
+
+    return `An das
+${adressat==="jobcenter"?"Jobcenter":"Sozialamt"} ${behoerdeOrt||"[Ort]"}
+${behoerde||"[Name der Behörde]"}
+
+${vorname||"[Vorname]"} ${nachname||"[Nachname]"}
+${strasse||"[Straße]"}, ${plz||"[PLZ]"} ${ort||"[Ort]"}
+${tel?"Tel.: "+tel:""}${mail?"\nE-Mail: "+mail:""}${bgnr?"\nBG-Nr.: "+bgnr:""}
+
+${sigOrt||ort||"[Ort]"}, ${sigDatum}
+
+
+Antrag auf Bewilligung eines vorläufigen Leistungsbescheides
+gemäß ${rgLabel}
+
+
+Sehr geehrte Damen und Herren,
+
+hiermit beantrage ich, ${vorname||"[Vorname]"} ${nachname||"[Nachname]"}, die Bewilligung von Leistungen auf vorläufiger Grundlage gemäß ${rgLabel}.${zeitraum}
+
+Ich bitte um Erlass eines vorläufigen Bescheides, da folgende Umstände zum gegenwärtigen Zeitpunkt eine abschließende Entscheidung verhindern:
+
+${begruendungsText||"[Bitte Begründung auswählen]"}
+
+${ekNetto||miete||anzKinder ? `Aktuelle Einkommenssituation:
+${ekNetto ? "- Nettoeinkommen: "+ekNetto+" €/Monat"+(ekArt?" ("+ekArt+")":"") : ""}
+${miete ? "- Warmmiete (KdU): "+miete+" €/Monat" : ""}
+${anzKinder ? "- Anzahl Kinder im Haushalt: "+anzKinder : ""}
+${kindergeld ? "- Kindergeld: "+kindergeld+" €/Monat" : ""}
+${unterhalt ? "- Unterhalt (tituliert): "+unterhalt+" €/Monat" : ""}
+${uvg ? "- Unterhaltsvorschuss (UVG): "+uvg+" €/Monat" : ""}`.split("\n").filter(l=>l.trim()).join("\n") : ""}
+
+${ergaenzung ? "Ergänzende Hinweise:\n"+ergaenzung : ""}
+
+Ich bitte um schnellstmögliche Bearbeitung, da meine Einkommenssituation${anzKinder?" und die Versorgung meiner Kinder" :""} von dieser Entscheidung unmittelbar abhängen.
+
+Sollten Sie weitere Unterlagen benötigen, stehe ich Ihnen jederzeit zur Verfügung.
+
+Mit freundlichen Grüßen
+
+
+_________________________
+${vorname||""} ${nachname||""}`;
+  }, [vorname,nachname,geburt,strasse,plz,ort,tel,mail,bgnr,adressat,behoerde,behoerdeOrt,
+      rechtsgrundlage,begruendungen,sonstigeText,ekNetto,ekArt,miete,anzKinder,
+      kindergeld,unterhalt,uvg,zeitraumVon,zeitraumBis,ergaenzung,sigOrt,sigDatum]);
+
+  // ── PDF Download ──
+  const downloadPDF = () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const W=210, H=297, m=20;
+      let y=m;
+
+      // Header
+      doc.setFillColor(0,51,102); doc.rect(0,0,W,26,"F");
+      doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+      doc.text("Antrag auf vorläufigen Leistungsbescheid",W/2,11,{align:"center"});
+      doc.setFontSize(9); doc.setFont("helvetica","normal");
+      const rgShort = rechtsgrundlage==="41a_sgb2"?"§ 41a SGB II":rechtsgrundlage==="43_sgb1"?"§ 43 SGB I":"§ 41a SGB II i.V.m. § 43 SGB I";
+      doc.text(rgShort+" · "+(adressat==="jobcenter"?"Jobcenter":"Sozialamt")+" "+behoerdeOrt,W/2,18,{align:"center"});
+      doc.text("Erstellt: "+sigDatum+" · ISUV Anspruchslotse",W/2,23,{align:"center"});
+      y=32;
+
+      // Adressblock
+      doc.setTextColor(40,40,40); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text("An:",m,y); doc.setFont("helvetica","normal");
+      doc.text((adressat==="jobcenter"?"Jobcenter":"Sozialamt")+" "+(behoerdeOrt||""), m+8, y); y+=4.5;
+      if (behoerde) { doc.text(behoerde,m+8,y); y+=4.5; }
+      y+=3;
+      doc.setFont("helvetica","bold"); doc.text("Von:",m,y); doc.setFont("helvetica","normal");
+      doc.text(vorname+" "+nachname,m+8,y); y+=4.5;
+      doc.text((strasse||"")+", "+(plz||"")+" "+(ort||""),m+8,y); y+=4.5;
+      if (tel) { doc.text("Tel.: "+tel,m+8,y); y+=4.5; }
+      if (mail){ doc.text("E-Mail: "+mail,m+8,y); y+=4.5; }
+      if (bgnr){ doc.text("BG-Nr.: "+bgnr,m+8,y); y+=4.5; }
+      y+=6;
+
+      // Betreff
+      doc.setFillColor(0,51,102); doc.rect(m,y,W-2*m,7,"F");
+      doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text("Antrag auf Bewilligung eines vorläufigen Leistungsbescheides gemäß "+rgShort,m+3,y+4.8);
+      y+=13;
+
+      // Anrede
+      doc.setTextColor(40,40,40); doc.setFont("helvetica","normal"); doc.setFontSize(9);
+      doc.text("Sehr geehrte Damen und Herren,",m,y); y+=6;
+      const einleitungLines = doc.splitTextToSize(
+        "hiermit beantrage ich, "+vorname+" "+nachname+", die Bewilligung von Leistungen auf vorläufiger Grundlage gemäß "+rgShort+"."
+        +((zeitraumVon||zeitraumBis)?" Beantragt wird der Zeitraum vom "+(zeitraumVon||"[von]")+" bis "+(zeitraumBis||"[bis]")+"." :""),
+        W-2*m);
+      doc.text(einleitungLines,m,y); y+=einleitungLines.length*4.5+3;
+
+      // Begründungen
+      doc.setFont("helvetica","bold"); doc.setFontSize(9);
+      doc.text("Folgende Umstände verhindern eine abschließende Entscheidung:",m,y); y+=6;
+      doc.setFont("helvetica","normal");
+      begruendungen.forEach(id => {
+        const b = BEGRUENDUNGEN.find(x=>x.id===id); if(!b) return;
+        const txt = id==="sonstige" ? (sonstigeText||"(kein Text eingegeben)") : b.text;
+        if(y>H-30){doc.addPage();y=m;}
+        doc.setFont("helvetica","bold"); doc.text("▶ "+b.label,m,y); y+=4.5;
+        doc.setFont("helvetica","normal");
+        const lines=doc.splitTextToSize(txt,W-2*m-4);
+        if(y+lines.length*4>H-30){doc.addPage();y=m;}
+        doc.text(lines,m+3,y); y+=lines.length*4+3;
+      });
+      y+=2;
+
+      // Einkommensdaten
+      const hatEK = ekNetto||miete||anzKinder||kindergeld||unterhalt||uvg;
+      if (hatEK) {
+        if(y>H-50){doc.addPage();y=m;}
+        doc.setFillColor(232,240,251); doc.roundedRect(m,y,W-2*m,2,"F");
+        doc.setFillColor(232,240,251);
+        const ekFelder = [
+          ekNetto?["Nettoeinkommen",ekNetto+" €/Monat"+(ekArt?" ("+ekArt+")":"")]:null,
+          miete?["Warmmiete (KdU)",miete+" €/Monat"]:null,
+          anzKinder?["Kinder im Haushalt",anzKinder]:null,
+          kindergeld?["Kindergeld",kindergeld+" €/Monat"]:null,
+          unterhalt?["Unterhalt (tituliert)",unterhalt+" €/Monat"]:null,
+          uvg?["Unterhaltsvorschuss (UVG)",uvg+" €/Monat"]:null,
+        ].filter(Boolean);
+        const ekH = 8+ekFelder.length*5;
+        doc.setFillColor(232,240,251); doc.roundedRect(m,y,W-2*m,ekH,2,2,"F");
+        doc.setFillColor(0,51,102); doc.rect(m,y,3,ekH,"F");
+        doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(0,51,102);
+        doc.text("Aktuelle Einkommenssituation",m+5,y+5); y+=8;
+        ekFelder.forEach(([l,v])=>{
+          doc.setFont("helvetica","normal"); doc.setFontSize(8.5); doc.setTextColor(40,40,40);
+          doc.text(l+":",m+5,y); doc.setFont("helvetica","bold"); doc.text(v,m+55,y); y+=5;
+        });
+        y+=4;
+      }
+
+      // Ergänzung
+      if(ergaenzung){
+        if(y>H-40){doc.addPage();y=m;}
+        doc.setFont("helvetica","bold"); doc.setFontSize(9); doc.setTextColor(40,40,40);
+        doc.text("Ergänzende Hinweise:",m,y); y+=5;
+        doc.setFont("helvetica","normal");
+        const eLines=doc.splitTextToSize(ergaenzung,W-2*m);
+        doc.text(eLines,m,y); y+=eLines.length*4.5+4;
+      }
+
+      // Schluss
+      if(y>H-50){doc.addPage();y=m;}
+      const schlussLines = doc.splitTextToSize(
+        "Ich bitte um schnellstmögliche Bearbeitung, da meine Einkommenssituation"+(parseInt(anzKinder)>0?" und die Versorgung meiner Kinder":"")+
+        " von dieser Entscheidung unmittelbar abhängen. Sollten Sie weitere Unterlagen benötigen, stehe ich Ihnen jederzeit zur Verfügung.",
+        W-2*m);
+      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(40,40,40);
+      doc.text(schlussLines,m,y); y+=schlussLines.length*4.5+8;
+      doc.text("Mit freundlichen Grüßen",m,y); y+=14;
+
+      // Unterschrift
+      if(y>H-40){doc.addPage();y=m;}
+      if(sigData){
+        try{doc.addImage(sigData,"PNG",m,y-2,70,22);}catch(e){}
+        y+=22;
+      } else { doc.line(m,y+12,m+70,y+12); y+=16; }
+      doc.setFont("helvetica","normal"); doc.setFontSize(9);
+      doc.text(vorname+" "+nachname+",  "+sigOrt+", "+sigDatum,m,y);
+      y+=10;
+
+      // Rechtliche Hinweise Box
+      if(y>H-30){doc.addPage();y=m;}
+      doc.setFillColor(255,248,225); doc.roundedRect(m,y,W-2*m,22,2,2,"F");
+      doc.setFillColor(245,127,23); doc.rect(m,y,3,22,"F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(109,76,0);
+      doc.text("⚖ Rechtlicher Hinweis",m+5,y+5);
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+      const hint="§ 41a SGB II: Bei ungeklärtem Einkommen kann das Jobcenter vorläufig bewilligen. "+
+        "§ 43 SGB I: Bei Zuständigkeitsstreit hat jede zuständige Stelle vorläufig zu leisten. "+
+        "BSG B 14 AS 9/12 R: Vorläufige Entscheidung ist bei unklaren Verhältnissen zwingend. "+
+        "Der Widerspruch gegen eine Ablehnung hat aufschiebende Wirkung (§ 86a SGG).";
+      const hLines=doc.splitTextToSize(hint,W-2*m-8);
+      doc.text(hLines,m+5,y+10);
+
+      // Footer
+      doc.setFillColor(0,51,102); doc.rect(0,H-12,W,12,"F");
+      doc.setTextColor(255,255,255); doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+      doc.text("ISUV e.V. · Interessenverband Unterhalt und Familienrecht · www.isuv.de · Erstellt mit ISUV Anspruchslotse",W/2,H-4.5,{align:"center"});
+
+      doc.save("ISUV_Vorlaeufiger_Bescheid_"+nachname+"_"+sigDatum.replace(/\./g,"-")+".pdf");
+    } catch(e){ alert("PDF-Fehler: "+e.message); }
+  };
+
+  // ── Absenden ──
+  const absenden = async () => {
+    if (!sigData){ setFehler("Bitte unterschreiben Sie den Antrag."); return; }
+    if (!rechtsgrundlage){ setFehler("Bitte wählen Sie eine Rechtsgrundlage."); return; }
+    if (begruendungen.length===0){ setFehler("Bitte wählen Sie mindestens eine Begründung."); return; }
+    setSendet(true); setFehler("");
+    const daten = {
+      vorname,name:nachname,geburt,strasse,plz,ort,tel,mail,bgnr,
+      adressat,behoerde,behoerdeOrt,rechtsgrundlage,begruendungen,sonstigeText,
+      ekNetto,ekArt,miete,anzKinder,kindergeld,unterhalt,uvg,
+      zeitraumVon,zeitraumBis,ergaenzung,
+      sig_ort:sigOrt,sig_datum:sigDatum,sig_data:sigData,
+      abgesendet_am:new Date().toISOString()
+    };
+    if (_TEST){ setTimeout(()=>{setSendet(false);setGesendet(true);},800); return; }
+    const ok = await sbSpeichere(formularId,daten,"beantwortet");
+    setSendet(false);
+    if(ok) setGesendet(true);
+    else setFehler("Übertragung fehlgeschlagen. Bitte erneut versuchen.");
+  };
+
+  const weiter = (check) => { if(check){ setFehler(check); return; } setFehler(""); setSchritt(s=>s+1); window.scrollTo(0,0); };
+  const zurueck = () => { setFehler(""); setSchritt(s=>s-1); window.scrollTo(0,0); };
+
+  if(gesendet) return (
+    <div>
+      <div className="success-box">
+        <div style={{fontSize:"2.5em",marginBottom:"10px"}}>✅</div>
+        <strong style={{fontSize:"15px"}}>Antrag erfolgreich übermittelt</strong>
+        <div style={{marginTop:"8px",fontSize:"12px"}}>
+          Der Antrag auf vorläufigen Leistungsbescheid von <strong>{vorname} {nachname}</strong> wurde übermittelt und in der Beratungsakte vermerkt.
+        </div>
+      </div>
+      <button className="btn btn-success" onClick={downloadPDF} style={{marginTop:"10px"}}>📄 Antrag als PDF herunterladen</button>
+    </div>
+  );
+
+  return (
+    <div>
+      <Fort pct={pct}/>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#999",marginBottom:"12px"}}>
+        <span>Schritt {schritt} von {SCHRITTE}</span>
+        <span style={{color:"#003366",fontWeight:"bold"}}>{["Antragsteller & Behörde","Rechtsgrundlage & Begründung","Einkommensdaten","Vorschau & Unterschrift"][schritt-1]}</span>
+      </div>
+
+      {/* ════ SCHRITT 1: Antragsteller & Behörde ════ */}
+      {schritt===1 && (
+        <div>
+          <div className="sec">👤 Antragsteller</div>
+          <div className="card">
+            <div className="g2">
+              <div><label>Vorname *</label><input value={vorname} onChange={e=>setVorname(e.target.value)} placeholder="Vorname"/></div>
+              <div><label>Nachname *</label><input value={nachname} onChange={e=>setNachname(e.target.value)} placeholder="Nachname"/></div>
+            </div>
+            <label>Geburtsdatum</label>
+            <input type="date" value={geburt} onChange={e=>setGeburt(e.target.value)}/>
+            <label>Straße & Hausnummer</label>
+            <input value={strasse} onChange={e=>setStrasse(e.target.value)} placeholder="Musterstraße 1"/>
+            <div className="g2">
+              <div><label>PLZ</label><input value={plz} onChange={e=>setPlz(e.target.value)} placeholder="12345"/></div>
+              <div><label>Ort</label><input value={ort} onChange={e=>{setOrt(e.target.value);setSigOrt(e.target.value);}} placeholder="München"/></div>
+            </div>
+            <div className="g2">
+              <div><label>Telefon</label><input type="tel" value={tel} onChange={e=>setTel(e.target.value)} placeholder="0170 1234567"/></div>
+              <div><label>E-Mail</label><input type="email" value={mail} onChange={e=>setMail(e.target.value)} placeholder="name@mail.de"/></div>
+            </div>
+            <label>BG-Nummer (falls vorhanden)</label>
+            <input value={bgnr} onChange={e=>setBgnr(e.target.value)} placeholder="z.B. 4712345-000"/>
+          </div>
+
+          <div className="sec">🏛️ Adressat / Behörde</div>
+          <div className="card">
+            <label>An welche Behörde richtet sich der Antrag? *</label>
+            <div className="chip-row">
+              <Chip label="🏛️ Jobcenter (SGB II)" aktiv={adressat==="jobcenter"} onToggle={()=>setAdressat("jobcenter")}/>
+              <Chip label="🏥 Sozialamt (SGB XII)" aktiv={adressat==="sozialamt"} onToggle={()=>setAdressat("sozialamt")}/>
+            </div>
+            <label>Name der Behörde</label>
+            <input value={behoerde} onChange={e=>setBehoerde(e.target.value)} placeholder={adressat==="jobcenter"?"z.B. Jobcenter München":"z.B. Sozialamt München"}/>
+            <label>Ort der Behörde</label>
+            <input value={behoerdeOrt} onChange={e=>setBehoerdeOrt(e.target.value)} placeholder="z.B. München"/>
+          </div>
+
+          {fehler && <div className="error-box">⚠️ {fehler}</div>}
+          <button className="btn btn-primary" style={{marginTop:"8px"}} onClick={()=>weiter(!vorname||!nachname?"Bitte Name eingeben.":null)}>Weiter →</button>
+        </div>
+      )}
+
+      {/* ════ SCHRITT 2: Rechtsgrundlage & Begründung ════ */}
+      {schritt===2 && (
+        <div>
+          <div className="sec">⚖️ Rechtsgrundlage</div>
+          <div className="card">
+            <div className="recht-box">
+              <strong>§ 41a SGB II</strong> – Vorläufige Entscheidung: Das Jobcenter kann bei ungeklärtem Einkommen oder unklaren Verhältnissen vorläufig bewilligen und später endgültig entscheiden.<br/>
+              <strong>§ 43 SGB I</strong> – Vorläufige Leistungen: Bei Zuständigkeitsstreit zwischen zwei Trägern muss die zuerst angegangene Stelle vorläufig leisten.<br/>
+              <strong>BSG B 14 AS 9/12 R</strong>: Vorläufige Bescheidung ist bei unklaren Verhältnissen zwingend, nicht nur optional.
+            </div>
+            <label>Anzuwendende Rechtsgrundlage *</label>
+            <div className="chip-row">
+              <Chip label="§ 41a SGB II" aktiv={rechtsgrundlage==="41a_sgb2"} onToggle={()=>setRechtsgrundlage("41a_sgb2")}/>
+              <Chip label="§ 43 SGB I" aktiv={rechtsgrundlage==="43_sgb1"} onToggle={()=>setRechtsgrundlage("43_sgb1")}/>
+              <Chip label="Beide (§ 41a SGB II + § 43 SGB I)" aktiv={rechtsgrundlage==="beide"} onToggle={()=>setRechtsgrundlage("beide")}/>
+            </div>
+          </div>
+
+          <div className="sec sec-teal">📋 Begründung (Mehrfachauswahl)</div>
+          <div className="card">
+            <div className="info-box">Wählen Sie alle zutreffenden Begründungen aus. Der Antragstext wird automatisch angepasst.</div>
+            {BEGRUENDUNGEN.map(b=>(
+              <CB key={b.id} checked={begruendungen.includes(b.id)} onChange={()=>toggleBeg(b.id)}>
+                <strong>{b.label}</strong>
+                {begruendungen.includes(b.id) && b.id!=="sonstige" && <div style={{fontSize:"11px",color:"#555",marginTop:"3px",fontStyle:"italic"}}>{b.text}</div>}
+              </CB>
+            ))}
+            {begruendungen.includes("sonstige") && (
+              <div>
+                <label>Sonstige Begründung (Freitext)</label>
+                <textarea value={sonstigeText} onChange={e=>setSonstigeText(e.target.value)} placeholder="Bitte Begründung eingeben..." style={{height:"80px"}}/>
+              </div>
+            )}
+          </div>
+
+          <div className="sec">📅 Zeitraum (optional)</div>
+          <div className="card">
+            <div className="g2">
+              <div><label>Beantragt ab</label><input type="date" value={zeitraumVon} onChange={e=>setZeitraumVon(e.target.value)}/></div>
+              <div><label>Bis voraussichtlich</label><input type="date" value={zeitraumBis} onChange={e=>setZeitraumBis(e.target.value)}/></div>
+            </div>
+          </div>
+
+          {fehler && <div className="error-box">⚠️ {fehler}</div>}
+          <div style={{display:"flex",gap:"8px",marginTop:"8px"}}>
+            <button className="btn btn-outline" onClick={zurueck} style={{flex:"0 0 80px"}}>← Zurück</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={()=>weiter(
+              !rechtsgrundlage?"Bitte Rechtsgrundlage wählen.":
+              begruendungen.length===0?"Bitte mindestens eine Begründung wählen.":null
+            )}>Weiter →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ SCHRITT 3: Einkommensdaten ════ */}
+      {schritt===3 && (
+        <div>
+          <div className="sec">💶 Einkommensdaten & Haushalt</div>
+          <div className="card">
+            <div className="info-box">Diese Angaben sind optional, aber empfohlen – sie werden in den Antragstext eingefügt und helfen der Behörde bei der Beurteilung.</div>
+            <div className="g2">
+              <div><label>Nettoeinkommen (€/Monat)</label><input type="number" value={ekNetto} onChange={e=>setEkNetto(e.target.value)} placeholder="z.B. 1850"/></div>
+              <div><label>Einkommensart</label><input value={ekArt} onChange={e=>setEkArt(e.target.value)} placeholder="z.B. Arbeitseinkommen"/></div>
+            </div>
+            <div className="g2">
+              <div><label>Warmmiete / KdU (€/Monat)</label><input type="number" value={miete} onChange={e=>setMiete(e.target.value)} placeholder="z.B. 900"/></div>
+              <div><label>Anzahl Kinder im Haushalt</label><input type="number" min="0" value={anzKinder} onChange={e=>setAnzKinder(e.target.value)} placeholder="z.B. 2"/></div>
+            </div>
+            <div className="g2">
+              <div><label>Kindergeld (€/Monat)</label><input type="number" value={kindergeld} onChange={e=>setKindergeld(e.target.value)} placeholder="z.B. 518"/></div>
+              <div><label>Unterhalt tituliert (€/Monat)</label><input type="number" value={unterhalt} onChange={e=>setUnterhalt(e.target.value)} placeholder="z.B. 426"/></div>
+            </div>
+            <label>Unterhaltsvorschuss UVG (€/Monat)</label>
+            <input type="number" value={uvg} onChange={e=>setUvg(e.target.value)} placeholder="z.B. 357"/>
+          </div>
+
+          <div className="sec">📝 Ergänzende Hinweise</div>
+          <div className="card">
+            <label>Weitere Angaben / Besondere Umstände (optional)</label>
+            <textarea value={ergaenzung} onChange={e=>setErgaenzung(e.target.value)} style={{height:"90px"}}
+              placeholder="z.B. Laufendes Verfahren vor dem FG München, Az. ..., Anhängiges Klageverfahren wegen Unterhalt..."/>
+          </div>
+
+          <div style={{display:"flex",gap:"8px",marginTop:"8px"}}>
+            <button className="btn btn-outline" onClick={zurueck} style={{flex:"0 0 80px"}}>← Zurück</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={()=>weiter(null)}>Weiter →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ════ SCHRITT 4: Vorschau & Unterschrift ════ */}
+      {schritt===4 && (
+        <div>
+          <div className="sec">👁️ Antrag – Vorschau</div>
+          <div className="card">
+            <div style={{fontSize:"10px",color:"#888",marginBottom:"8px"}}>Der Antrag wird so an die Behörde übermittelt. Sie können jederzeit zurückgehen und Änderungen vornehmen.</div>
+            <div className="preview-box" style={{maxHeight:"280px",overflowY:"auto",fontSize:"10px",lineHeight:"1.7"}}>
+              {antragText}
+            </div>
+          </div>
+
+          <div className="sec">✍️ Unterschrift & Datum</div>
+          <div className="card">
+            <div className="g2">
+              <div><label>Ort</label><input value={sigOrt} onChange={e=>setSigOrt(e.target.value)} placeholder="München"/></div>
+              <div><label>Datum</label><input value={sigDatum} onChange={e=>setSigDatum(e.target.value)}/></div>
+            </div>
+            <SigPad label={"Unterschrift: "+vorname+" "+nachname} value={sigData} onChange={setSigData}/>
+            <div style={{fontSize:"11px",color:"#555",background:"#f8f9fa",borderRadius:"6px",padding:"9px",marginTop:"4px",lineHeight:"1.6"}}>
+              Mit Ihrer Unterschrift bestätigen Sie die Richtigkeit der gemachten Angaben und bevollmächtigen den ISUV e.V., diesen Antrag in Ihrem Namen einzureichen bzw. als Muster zu verwenden.
+            </div>
+          </div>
+
+          {fehler && <div className="error-box" style={{marginBottom:"8px"}}>⚠️ {fehler}</div>}
+          <button className="btn btn-success" onClick={downloadPDF} style={{marginBottom:"6px"}}>📄 Als PDF herunterladen</button>
+          <div style={{display:"flex",gap:"8px"}}>
+            <button className="btn btn-outline" onClick={zurueck} style={{flex:"0 0 80px"}}>← Zurück</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={absenden} disabled={sendet}>
+              {sendet?"Wird übermittelt…":"✅ Antrag abgeben & speichern"}
+            </button>
+          </div>
+          <p className="pflicht-info">Daten werden verschlüsselt übertragen · DSGVO-konform · ISUV Anspruchslotse</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App-Wrapper ──
+function FormularApp() {
+  const [status,    setStatus]   = useState("laden");
+  const [formular,  setFormular] = useState(null);
+  const [fehlerText,setFehlerText]= useState("");
+
+  useEffect(()=>{
+    if(_TEST){
+      setFormular({typ:"vorlaeufig",vorausgefuellt:"{}",berater_name:"ISUV-Berater",label:"Antrag vorläufiger Leistungsbescheid – Test"});
+      setStatus("bereit"); return;
+    }
+    if(!FORMULAR_ID){setStatus("kein_id");return;}
+    if(!SB_URL||!SB_KEY){setStatus("fehler");setFehlerText("Fehlende Verbindungsdaten.");return;}
+    sbLade(FORMULAR_ID).then(row=>{
+      if(!row){setStatus("fehler");setFehlerText("Formular nicht gefunden.");return;}
+      if(row.status==="beantwortet"){setStatus("abgeschlossen");setFormular(row);return;}
+      setFormular(row); setStatus("bereit");
+    });
+  },[]);
+
+  const vf = formular?(()=>{try{return JSON.parse(formular.vorausgefuellt||"{}");}catch(e){return{};}})():{};
+
+  return (
+    <div>
+      <div className="header">
+        <img src={LOGO} alt="ISUV" onError={e=>e.target.style.display="none"}/>
+        <h2>ISUV Anspruchslotse</h2>
+        {formular&&<p>{formular.label||"Antrag auf vorläufigen Leistungsbescheid"}{_TEST&&" · 🔧 Testmodus"}</p>}
+      </div>
+      {status==="laden"&&<div className="loading"><div className="spinner"/><p>Wird geladen…</p></div>}
+      {status==="fehler"&&<div className="error-box"><strong>⚠️ Fehler</strong><br/>{fehlerText}</div>}
+      {status==="kein_id"&&(
+        <div style={{padding:"30px 20px",textAlign:"center"}}>
+          <div style={{fontSize:"3em",marginBottom:"12px"}}>📄</div>
+          <div style={{fontWeight:"bold",fontSize:"16px",color:"#003366",marginBottom:"8px"}}>Kein Formular-Link</div>
+          <div style={{fontSize:"13px",color:"#666",lineHeight:"1.6",maxWidth:"340px",margin:"0 auto"}}>
+            Diese Seite kann nur über einen persönlichen Link geöffnet werden, den Ihr ISUV-Berater Ihnen zugesandt hat.
+          </div>
+        </div>
+      )}
+      {status==="abgeschlossen"&&(
+        <div className="success-box">
+          <div style={{fontSize:"2em",marginBottom:"8px"}}>✅</div>
+          <strong>Antrag bereits übermittelt</strong><br/>
+          Dieser Antrag wurde bereits ausgefüllt und übermittelt.
+        </div>
+      )}
+      {status==="bereit"&&(
+        <VorlaeufigFormular
+          vf={vf}
+          formularId={FORMULAR_ID}
+          beraterName={formular?.berater_name||"ISUV-Berater"}
+        />
+      )}
+    </div>
+  );
+}
+
+const container=document.getElementById("root");
+if(ReactDOM.createRoot) ReactDOM.createRoot(container).render(React.createElement(FormularApp));
+else ReactDOM.render(React.createElement(FormularApp),container);
+</script>
+</body>
+</html>
