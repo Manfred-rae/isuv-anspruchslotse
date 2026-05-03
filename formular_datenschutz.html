@@ -1,0 +1,648 @@
+<!-- saved from url=(0022)http://internet.e-mail -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ISUV – Datenschutzerklärung & Einwilligungserklärung</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.2/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f0f4f8; color: #222; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    #root { max-width: 620px; margin: 0 auto; padding: 16px 16px 80px; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); padding: 16px; margin-bottom: 12px; }
+    .header { text-align: center; padding: 20px 16px 14px; background: white; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+    .header img { width: 110px; height: auto; margin-bottom: 8px; }
+    .header h2 { font-size: 15px; color: #003366; margin: 0; }
+    .header p { font-size: 11px; color: #666; margin-top: 3px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e0e0e0; border-top-color: #003366; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading { text-align: center; padding: 60px 20px; color: #666; }
+    .error-box { background: #ffebee; border: 1px solid #e53935; border-radius: 8px; padding: 14px; margin: 10px 0; color: #b71c1c; font-size: 13px; }
+    .success-box { background: #e8f5e9; border: 1px solid #2e7d32; border-radius: 8px; padding: 20px; margin: 10px 0; color: #1b5e20; font-size: 13px; text-align: center; }
+    .info-box { background: #e0f7fa; border: 1px solid #80deea; border-radius: 7px; padding: 10px 12px; font-size: 11px; color: #006064; margin-bottom: 10px; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; font-family: inherit; }
+    .btn-primary { background: #003366; color: white; }
+    .btn-success { background: #2e7d32; color: white; }
+    .btn-outline { background: #fff; color: #003366; border: 2px solid #003366; }
+    label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; color: #444; }
+    input, select, textarea { width: 100%; padding: 9px 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 16px !important; font-family: inherit; background: #fff; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #003366; }
+    .section-title { font-size: 10px; font-weight: bold; color: #fff; background: #003366; border-radius: 5px; padding: 5px 10px; margin: 14px 0 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .dsgvo-text { font-size: 11px; color: #444; line-height: 1.7; background: #f8f9fa; border-left: 3px solid #003366; border-radius: 5px; padding: 10px 12px; margin-bottom: 8px; }
+    .dsgvo-text h4 { font-size: 11px; color: #003366; margin-bottom: 4px; margin-top: 8px; }
+    .dsgvo-text h4:first-child { margin-top: 0; }
+    .checkbox-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px; background: #f0f7ff; border-radius: 8px; border: 1px solid #c5d8f0; margin-bottom: 8px; cursor: pointer; }
+    .checkbox-row.checked { background: #e8f0fb; border-color: #003366; }
+    .checkbox-box { width: 20px; height: 20px; border: 2px solid #003366; border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; background: white; }
+    .checkbox-box.checked { background: #003366; }
+    .checkbox-text { font-size: 12px; color: #333; line-height: 1.5; }
+    .sig-area { border: 2px solid #003366; border-radius: 8px; background: #f9faff; position: relative; overflow: hidden; touch-action: none; }
+    .sig-canvas { width: 100%; height: 100px; display: block; cursor: crosshair; touch-action: none; }
+    .pflicht-info { font-size: 10px; color: #999; text-align: center; margin-top: 8px; }
+    .fortschritt-bar { height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: 14px; }
+    .fortschritt-fill { height: 100%; background: linear-gradient(90deg,#003366,#00afad); border-radius: 3px; transition: width 0.4s; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const urlParams = new URLSearchParams(window.location.search);
+const FORMULAR_ID = urlParams.get("id") || "";
+const SB_URL = urlParams.get("sb") || "";
+const SB_KEY = urlParams.get("key") || "";
+const _TEST = !FORMULAR_ID;
+
+const LOGO = "https://anspruchslotse.github.io/isuv-anspruchslotse/isuv-logo.png";
+
+const sbHeaders = () => ({ "Content-Type":"application/json","apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY });
+
+const sbLade = async (id) => {
+  if (!SB_URL||!SB_KEY||!id) return null;
+  try {
+    const res = await fetch(SB_URL+"/rest/v1/formulare?formular_id=eq."+encodeURIComponent(id),{headers:sbHeaders()});
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows&&rows[0]?rows[0]:null;
+  } catch(e){return null;}
+};
+
+const sbSpeichere = async (id, daten, status) => {
+  if (!SB_URL||!SB_KEY) return false;
+  try {
+    const res = await fetch(SB_URL+"/rest/v1/formulare?formular_id=eq."+encodeURIComponent(id),{
+      method:"PATCH", headers:{...sbHeaders(),"Prefer":"return=minimal"},
+      body:JSON.stringify({antwort_daten:JSON.stringify(daten),status,beantwortet_am:new Date().toISOString()})
+    });
+    return res.ok;
+  } catch(e){return false;}
+};
+
+// ── Unterschriftsfeld ──
+function SignaturPad({ label, value, onChange }) {
+  const canvasRef = useRef(null);
+  const drawing = useRef(false);
+  const lastPos = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if (value) { const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0); img.src=value; }
+  }, [value]);
+
+  const getPos = (canvas, e) => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+    const src = e.touches?e.touches[0]:e;
+    return {x:(src.clientX-rect.left)*sx, y:(src.clientY-rect.top)*sy};
+  };
+  const start = (e) => { e.preventDefault(); drawing.current=true; const cv=canvasRef.current; lastPos.current=getPos(cv,e); };
+  const draw = (e) => {
+    e.preventDefault(); if(!drawing.current) return;
+    const cv=canvasRef.current; const ctx=cv.getContext("2d");
+    const pos=getPos(cv,e);
+    ctx.beginPath(); ctx.strokeStyle="#003366"; ctx.lineWidth=2.5; ctx.lineCap="round";
+    ctx.moveTo(lastPos.current.x,lastPos.current.y); ctx.lineTo(pos.x,pos.y); ctx.stroke();
+    lastPos.current=pos;
+  };
+  const stop = (e) => { if(!drawing.current) return; drawing.current=false; onChange(canvasRef.current.toDataURL()); };
+  const clear = () => { const cv=canvasRef.current; cv.getContext("2d").clearRect(0,0,cv.width,cv.height); onChange(""); };
+
+  return (
+    <div style={{marginBottom:"10px"}}>
+      <div style={{fontSize:"11px",fontWeight:"bold",color:"#003366",marginBottom:"4px"}}>{label}</div>
+      <div className="sig-area">
+        <canvas ref={canvasRef} width={560} height={120} className="sig-canvas"
+          onMouseDown={start} onMouseMove={draw} onMouseUp={stop} onMouseLeave={stop}
+          onTouchStart={start} onTouchMove={draw} onTouchEnd={stop} />
+        {!value && <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",color:"#bbb",fontSize:"12px",pointerEvents:"none",textAlign:"center"}}>✍️ Hier unterschreiben</div>}
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"4px"}}>
+        <div style={{fontSize:"10px",color:"#888"}}>Mit Finger oder Maus unterschreiben</div>
+        <button onClick={clear} style={{fontSize:"10px",color:"#e53935",background:"none",border:"1px solid #e53935",borderRadius:"4px",padding:"2px 8px",cursor:"pointer"}}>✕ Löschen</button>
+      </div>
+      {value && <div style={{fontSize:"10px",color:"#2e7d32",marginTop:"2px"}}>✅ Unterschrift vorhanden</div>}
+    </div>
+  );
+}
+
+// ── Fortschrittsbalken ──
+function Fortschritt({ pct }) {
+  return (
+    <div className="fortschritt-bar">
+      <div className="fortschritt-fill" style={{width:pct+"%"}} />
+    </div>
+  );
+}
+
+// ── Checkbox ──
+function CheckBox({ checked, onChange, children }) {
+  return (
+    <div className={"checkbox-row"+(checked?" checked":"")} onClick={()=>onChange(!checked)}>
+      <div className={"checkbox-box"+(checked?" checked":"")}>
+        {checked && <span style={{color:"#fff",fontSize:"13px",fontWeight:"bold",lineHeight:1}}>✓</span>}
+      </div>
+      <div className="checkbox-text">{children}</div>
+    </div>
+  );
+}
+
+// ── Haupt-Formular ──
+function DatenschutzFormular({ vorausgefuellt, formularId, beraterMail, beraterName }) {
+  const vf = vorausgefuellt || {};
+  const [schritt, setSchritt] = useState(1);
+  const SCHRITTE = 3;
+  const [sendet, setSendet] = useState(false);
+  const [gesendet, setGesendet] = useState(false);
+  const [fehler, setFehler] = useState("");
+
+  // Schritt 1: Personendaten
+  const [vorname, setVorname] = useState(vf.vorname||"");
+  const [nachname, setNachname] = useState(vf.name||"");
+  // Geburtsdatum-Hilfsfunktionen (function-Deklaration wegen Hoisting)
+  function normalisiereGeburt(g) {
+    if (!g) return "";
+    var m1 = g.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m1) return m1[3]+"-"+m1[2]+"-"+m1[1];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(g)) return g;
+    return g;
+  }
+  function formatGeburtAnzeige(g) {
+    if (!g) return "";
+    var m1 = g.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m1) return m1[3]+"."+m1[2]+"."+m1[1];
+    return g;
+  }
+  const [geburt, setGeburt] = useState(function(){ return normalisiereGeburt(vf.geburt||""); });
+  const [strasse, setStrasse] = useState(vf.strasse||"");
+  const [plz, setPlz] = useState(vf.plz||"");
+  const [ort, setOrt] = useState(vf.ort||"");
+  const [mail, setMail] = useState(vf.mail||"");
+  const [tel, setTel] = useState(vf.tel||"");
+
+  // Schritt 2: Einwilligungen
+  const [einw1, setEinw1] = useState(false); // Beratung & Datenverarbeitung
+  const [einw2, setEinw2] = useState(false); // Unterhalt, Sorgerecht, Umgang
+  const [einw3, setEinw3] = useState(false); // Weitergabe Anwalt/Behörden
+  const [einw4, setEinw4] = useState(false); // Kontaktaufnahme durch Berater
+  const [einw5, setEinw5] = useState(false); // Speicherung bis Widerruf
+  const [dsgvoGelesen, setDsgvoGelesen] = useState(false);
+
+  // Schritt 3: Unterschrift
+  const [datum, setDatum] = useState(new Date().toLocaleDateString("de-DE"));
+  const [ort2, setOrt2] = useState(vf.ort||"");
+  const [sigData, setSigData] = useState("");
+
+  const pct = Math.round((schritt/SCHRITTE)*100);
+  const alleEinw = einw1 && einw2 && dsgvoGelesen;
+
+  const absenden = async () => {
+    if (!sigData) { setFehler("Bitte unterschreiben Sie das Formular."); return; }
+    if (!alleEinw) { setFehler("Bitte bestätigen Sie die erforderlichen Einwilligungen (★)."); return; }
+    setSendet(true); setFehler("");
+    const daten = {
+      vorname, name:nachname, geburt, strasse, plz, ort, mail, tel,
+      einw_beratung:einw1, einw_unterhalt:einw2, einw_weitergabe:einw3,
+      einw_kontakt:einw4, einw_speicherung:einw5, dsgvo_gelesen:dsgvoGelesen,
+      unterschrift_datum:datum, unterschrift_ort:ort2,
+      unterschrift_data:sigData,
+      abgesendet_am:new Date().toISOString()
+    };
+    if (_TEST) { setTimeout(()=>{ setSendet(false); setGesendet(true); }, 800); return; }
+    const ok = await sbSpeichere(formularId, daten, "beantwortet");
+    setSendet(false);
+    if (ok) setGesendet(true);
+    else setFehler("Übertragung fehlgeschlagen. Bitte erneut versuchen.");
+  };
+
+  const downloadPDF = () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"a4" });
+      const W=210, H=297, m=18, TW=W-2*m; // Textbreite
+      let y=m;
+
+      // ── Hilfsfunktion: Neue Seite wenn nötig ──
+      const checkPage = (needed) => {
+        if (y + needed > H - 18) { doc.addPage(); y = m; }
+      };
+
+      // ── Abschnittstitel ──
+      const sTitle = (text) => {
+        checkPage(14);
+        doc.setFillColor(0,51,102); doc.roundedRect(m, y, TW, 8, 2, 2, "F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        doc.text(text, m+4, y+5.5);
+        y += 11;
+        doc.setTextColor(40,40,40);
+      };
+
+      // ── Textzeile mit Label ──
+      const row = (label, value, indent) => {
+        checkPage(6);
+        const x = m + (indent||0);
+        doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(80,80,80);
+        doc.text(label, x, y);
+        doc.setFont("helvetica","normal"); doc.setTextColor(30,30,30);
+        const vLines = doc.splitTextToSize(String(value||"–"), TW - (indent||0) - 40);
+        doc.text(vLines, x+38, y);
+        y += Math.max(vLines.length * 4.5, 5);
+      };
+
+      // ════ HEADER ════
+      doc.setFillColor(0,51,102); doc.rect(0,0,W,28,"F");
+      doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(13);
+      doc.text("Datenschutzerklärung & Einwilligungserklärung", W/2, 11, {align:"center"});
+      doc.setFontSize(9); doc.setFont("helvetica","normal");
+      doc.text("ISUV e.V. – Interessenverband Unterhalt und Familienrecht", W/2, 18, {align:"center"});
+      doc.text("Erstellt am: "+datum+(ort2 ? "  ·  Ort: "+ort2 : ""), W/2, 24, {align:"center"});
+      y = 34;
+
+      // ════ 1. PERSONENDATEN ════
+      sTitle("1. Angaben zur Person");
+      doc.setFillColor(245,248,252); doc.roundedRect(m, y, TW, 34, 2, 2, "F");
+      doc.setFillColor(0,51,102); doc.rect(m, y, 2.5, 34, "F");
+      y += 3;
+      row("Name:", vorname+" "+nachname, 4);
+      if (geburt) row("Geburtsdatum:", formatGeburtAnzeige(geburt), 4);
+      row("Adresse:", (strasse||"")+(plz||ort ? ", "+(plz||"")+" "+(ort||"") : ""), 4);
+      if (mail) row("E-Mail:", mail, 4);
+      if (tel)  row("Telefon:", tel, 4);
+      y += 4;
+
+      // ════ 2. DATENSCHUTZERKLÄRUNG ════
+      sTitle("2. Datenschutzerklärung (DSGVO)");
+      doc.setFontSize(8); doc.setFont("helvetica","normal"); doc.setTextColor(40,40,40);
+
+      const dsgvoBlöcke = [
+        { titel:"Verantwortlicher:",
+          text:"ISUV e.V. (Interessenverband Unterhalt und Familienrecht), Postfach, D-95440 Bayreuth, info@isuv.de, www.isuv.de" },
+        { titel:"Zweck der Verarbeitung:",
+          text:"Beratung bei Trennung und Scheidung; Unterstützung bei Unterhalt, Sorgerecht und Umgangsrecht; Weiterleitung an Anwälte, Behörden und Gerichte (nur mit Einwilligung); Kontaktaufnahme durch ISUV-Berater." },
+        { titel:"Rechtsgrundlage:",
+          text:"Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) · Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) · Art. 9 Abs. 2 lit. a DSGVO (besondere Kategorien: Gesundheit, Familienstand, Finanzen)." },
+        { titel:"Speicherdauer:",
+          text:"Bis zum Widerruf der Einwilligung, längstens 10 Jahre nach Beratungsende (§ 195 BGB, gesetzliche Aufbewahrungsfristen)." },
+        { titel:"Ihre Rechte (DSGVO):",
+          text:"Auskunft (Art. 15) · Berichtigung (Art. 16) · Löschung (Art. 17) · Einschränkung (Art. 18) · Widerspruch (Art. 21). Widerruf jederzeit formlos an info@isuv.de. Beschwerderecht: BayLDA." },
+      ];
+      dsgvoBlöcke.forEach(b => {
+        checkPage(12);
+        doc.setFont("helvetica","bold"); doc.setFontSize(8);
+        doc.text(b.titel, m, y); y += 4;
+        doc.setFont("helvetica","normal");
+        const lines = doc.splitTextToSize(b.text, TW - 4);
+        checkPage(lines.length * 4 + 3);
+        doc.text(lines, m+2, y);
+        y += lines.length * 4 + 3;
+      });
+      y += 3;
+
+      // ════ 3. EINWILLIGUNGEN ════
+      sTitle("3. Einwilligungserklärungen");
+      const einwList = [
+        { ok:einw1, pflicht:true,
+          titel:"Beratung (Pflichteinwilligung)",
+          text:"Ich willige in die Verarbeitung meiner personenbezogenen Daten (Name, Kontakt, Familienstand, Einkommen, Kinder) zum Zweck der Beratung durch den ISUV e.V. ein.  Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO." },
+        { ok:einw2, pflicht:true,
+          titel:"Unterhalt, Sorgerecht, Umgang (Pflichteinwilligung)",
+          text:"Ich willige in die Verarbeitung meiner Daten zu Fragen des Kindes-/Ehegattenunterhalts, Sorgerechts und Umgangsrechts ein.  Rechtsgrundlage: Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a DSGVO." },
+        { ok:einw3, pflicht:false,
+          titel:"Weitergabe an Anwälte / Behörden (optional)",
+          text:"Ich willige ein, dass meine Daten bei Bedarf an beauftragte Rechtsanwälte, Familiengerichte oder Behörden (Jugendamt, Jobcenter) weitergegeben werden dürfen." },
+        { ok:einw4, pflicht:false,
+          titel:"Kontaktaufnahme durch Berater (optional)",
+          text:"Ich willige ein, dass der ISUV e.V. und der zuständige Berater mich per E-Mail oder Telefon für Rückfragen und Terminvereinbarungen kontaktieren dürfen." },
+        { ok:einw5, pflicht:false,
+          titel:"Datenspeicherung (optional)",
+          text:"Ich willige in die Speicherung meiner Beratungsdaten bis zu meinem Widerruf, längstens 10 Jahre nach Beratungsende, ein. Widerruf jederzeit per E-Mail an info@isuv.de möglich." },
+        { ok:dsgvoGelesen, pflicht:true,
+          titel:"Datenschutzerklärung gelesen und verstanden",
+          text:"Ich bestätige, die Datenschutzerklärung des ISUV e.V. vollständig gelesen und verstanden zu haben." },
+      ];
+      einwList.forEach(e => {
+        const txtLines = doc.splitTextToSize(e.text, TW - 14);
+        const boxH = 6 + txtLines.length * 4 + 2;
+        checkPage(boxH + 3);
+        // Box-Hintergrund
+        const bg = e.ok ? [232,240,251] : [250,250,250];
+        doc.setFillColor(bg[0],bg[1],bg[2]);
+        doc.roundedRect(m, y, TW, boxH, 1.5, 1.5, "F");
+        // Linker Streifen
+        doc.setFillColor(e.ok ? 0 : 180, e.ok ? 51 : 180, e.ok ? 102 : 180);
+        doc.rect(m, y, 2.5, boxH, "F");
+        // Checkbox-Symbol
+        doc.setFont("helvetica","bold"); doc.setFontSize(9);
+        doc.setTextColor(e.ok ? 0 : 150, e.ok ? 51 : 150, e.ok ? 102 : 150);
+        doc.text(e.ok ? "☑" : "☐", m+4, y+5.5);
+        // Titel
+        doc.setFont("helvetica","bold"); doc.setFontSize(8);
+        doc.setTextColor(30,30,30);
+        doc.text((e.pflicht ? "★ " : "") + e.titel, m+10, y+5.5);
+        // Einwilligungstext
+        doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+        doc.setTextColor(60,60,60);
+        doc.text(txtLines, m+10, y+10);
+        y += boxH + 3;
+      });
+      y += 3;
+
+      // ════ 4. UNTERSCHRIFT ════
+      checkPage(50);
+      sTitle("4. Unterschrift");
+
+      // Unterschrifts-Bild (links)
+      const sigBoxY = y;
+      doc.setFillColor(248,250,255);
+      doc.roundedRect(m, sigBoxY, 85, 30, 2, 2, "F");
+      doc.setDrawColor(0,51,102); doc.setLineWidth(0.3);
+      doc.roundedRect(m, sigBoxY, 85, 30, 2, 2, "S");
+      if (sigData) {
+        try {
+          doc.addImage(sigData, "PNG", m+2, sigBoxY+1, 81, 24);
+        } catch(e) {}
+      } else {
+        doc.setFont("helvetica","italic"); doc.setFontSize(8); doc.setTextColor(180,180,180);
+        doc.text("(keine Unterschrift)", m+18, sigBoxY+16);
+      }
+      // Unterschrift-Label unter dem Bild
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(80,80,80);
+      doc.text(vorname+" "+nachname, m+2, sigBoxY+32);
+
+      // Ort + Datum (rechts neben der Unterschrift)
+      doc.setFont("helvetica","bold"); doc.setFontSize(8); doc.setTextColor(80,80,80);
+      doc.text("Ort:", m+92, sigBoxY+8);
+      doc.setFont("helvetica","normal"); doc.setTextColor(30,30,30);
+      doc.text(ort2||"–", m+102, sigBoxY+8);
+      doc.setFont("helvetica","bold"); doc.setTextColor(80,80,80);
+      doc.text("Datum:", m+92, sigBoxY+16);
+      doc.setFont("helvetica","normal"); doc.setTextColor(30,30,30);
+      doc.text(datum||"–", m+110, sigBoxY+16);
+      y = sigBoxY + 38;
+
+      // ════ HINWEIS ════
+      checkPage(18);
+      doc.setFillColor(255,248,225); doc.roundedRect(m, y, TW, 14, 2, 2, "F");
+      doc.setFillColor(245,127,23); doc.rect(m, y, 2.5, 14, "F");
+      doc.setFont("helvetica","bold"); doc.setFontSize(7.5); doc.setTextColor(109,76,0);
+      doc.text("Widerruf:", m+4, y+5);
+      doc.setFont("helvetica","normal");
+      const hinweisLines = doc.splitTextToSize(
+        "Die erteilten Einwilligungen können jederzeit formlos per E-Mail an info@isuv.de widerrufen werden. " +
+        "Der Widerruf berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.", TW-8);
+      doc.text(hinweisLines, m+4, y+10);
+      y += 18;
+
+      // ════ FOOTER ════
+      doc.setFillColor(0,51,102); doc.rect(0, H-12, W, 12, "F");
+      doc.setTextColor(255,255,255); doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+      doc.text("ISUV e.V. · Interessenverband Unterhalt und Familienrecht · info@isuv.de · www.isuv.de",
+        W/2, H-5, {align:"center"});
+
+      doc.save("ISUV_Datenschutz_"+nachname+"_"+(datum||"").replace(/\./g,"-")+".pdf");
+    } catch(e) { alert("PDF-Fehler: "+e.message); }
+  };
+
+  if (gesendet) return (
+    <div>
+      <div className="success-box">
+        <div style={{fontSize:"2.5em",marginBottom:"10px"}}>✅</div>
+        <strong style={{fontSize:"15px"}}>Einwilligungserklärung eingegangen</strong>
+        <div style={{marginTop:"8px",fontSize:"12px",color:"#2e7d32"}}>
+          Vielen Dank, {vorname}! Ihre Einwilligungserklärung wurde erfolgreich übermittelt und in der Beratungsakte vermerkt.
+        </div>
+      </div>
+      <button className="btn btn-outline" onClick={downloadPDF} style={{marginTop:"8px"}}>
+        📄 PDF herunterladen
+      </button>
+    </div>
+  );
+
+  return (
+    <div>
+      <Fortschritt pct={pct} />
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#999",marginBottom:"12px"}}>
+        <span>Schritt {schritt} von {SCHRITTE}</span>
+        <span style={{color:"#003366",fontWeight:"bold"}}>{["Ihre Daten","Einwilligungen","Unterschrift"][schritt-1]}</span>
+      </div>
+
+      {/* ── SCHRITT 1: PERSONENDATEN ── */}
+      {schritt===1 && (
+        <div>
+          <div className="section-title">👤 Ihre Angaben zur Person</div>
+          <div className="card">
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+              <div><label>Vorname *</label><input value={vorname} onChange={e=>setVorname(e.target.value)} placeholder="Vorname" /></div>
+              <div><label>Nachname *</label><input value={nachname} onChange={e=>setNachname(e.target.value)} placeholder="Nachname" /></div>
+            </div>
+            <label>Geburtsdatum</label>
+            <input type="date" value={geburt} onChange={e=>setGeburt(e.target.value)} />
+            <label>Straße & Hausnummer</label>
+            <input value={strasse} onChange={e=>setStrasse(e.target.value)} placeholder="Musterstraße 1" />
+            <div style={{display:"grid",gridTemplateColumns:"90px 1fr",gap:"8px"}}>
+              <div><label>PLZ</label><input value={plz} onChange={e=>setPlz(e.target.value)} placeholder="12345" /></div>
+              <div><label>Ort</label><input value={ort} onChange={e=>{ setOrt(e.target.value); setOrt2(e.target.value); }} placeholder="Stadt" /></div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+              <div><label>E-Mail</label><input type="email" value={mail} onChange={e=>setMail(e.target.value)} placeholder="name@mail.de" /></div>
+              <div><label>Telefon</label><input type="tel" value={tel} onChange={e=>setTel(e.target.value)} placeholder="0170 1234567" /></div>
+            </div>
+          </div>
+          <div className="info-box">ℹ️ Ihre Daten werden ausschließlich für die ISUV-Beratung verwendet und nicht ohne Ihre Einwilligung weitergegeben.</div>
+          <button className="btn btn-primary" onClick={()=>{ if (!vorname||!nachname){ setFehler("Bitte geben Sie Ihren Namen ein."); return; } setFehler(""); setSchritt(2); }} style={{marginTop:"8px"}}>Weiter →</button>
+          {fehler && <div className="error-box" style={{marginTop:"8px"}}>⚠️ {fehler}</div>}
+        </div>
+      )}
+
+      {/* ── SCHRITT 2: DATENSCHUTZ + EINWILLIGUNGEN ── */}
+      {schritt===2 && (
+        <div>
+          <div className="section-title">📋 Datenschutzerklärung (DSGVO)</div>
+          <div className="card">
+            <div className="dsgvo-text">
+              <h4>Verantwortlicher</h4>
+              ISUV e.V. (Interessenverband Unterhalt und Familienrecht), Postfach, D-95440 Bayreuth, E-Mail: info@isuv.de, Web: www.isuv.de
+
+              <h4>Zweck der Datenverarbeitung</h4>
+              Der ISUV e.V. verarbeitet Ihre personenbezogenen Daten ausschließlich zu folgenden Zwecken:
+              <ul style={{marginLeft:"14px",marginTop:"4px"}}>
+                <li>Beratung bei Trennung und Scheidung (§§ 1564 ff. BGB)</li>
+                <li>Unterstützung bei Unterhaltsansprüchen (§§ 1601 ff. BGB)</li>
+                <li>Fragen zu Sorgerecht (§§ 1626 ff. BGB) und Umgangsrecht (§ 1684 BGB)</li>
+                <li>Weiterleitung relevanter Informationen an Rechtsanwälte, Behörden und Gerichte (nur mit Einwilligung)</li>
+                <li>Kontaktaufnahme durch zuständige ISUV-Berater (nur mit Einwilligung)</li>
+              </ul>
+
+              <h4>Rechtsgrundlage</h4>
+              Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) · Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) · Art. 9 Abs. 2 lit. a DSGVO für besondere Kategorien personenbezogener Daten (Gesundheit, Familienstand, Finanzen).
+
+              <h4>Speicherdauer</h4>
+              Ihre Daten werden bis zum Widerruf der Einwilligung, längstens 10 Jahre nach Beendigung der Beratung gespeichert (§ 195 BGB, gesetzliche Aufbewahrungsfristen).
+
+              <h4>Ihre Rechte nach DSGVO</h4>
+              Sie haben das Recht auf <strong>Auskunft</strong> (Art. 15), <strong>Berichtigung</strong> (Art. 16), <strong>Löschung</strong> (Art. 17), <strong>Einschränkung</strong> (Art. 18) und <strong>Widerspruch</strong> (Art. 21 DSGVO). Den Widerruf Ihrer Einwilligung können Sie jederzeit formlos per E-Mail an <strong>info@isuv.de</strong> erklären. Beschwerden richten Sie bitte an das <strong>Bayerische Landesamt für Datenschutzaufsicht (BayLDA)</strong>.
+
+              <h4>Datenweitergabe</h4>
+              Eine Weitergabe Ihrer Daten an Dritte erfolgt nur mit Ihrer ausdrücklichen Einwilligung oder wenn dies zur Erfüllung der Beratungsleistung zwingend erforderlich ist.
+            </div>
+          </div>
+
+          <div className="section-title">✅ Einwilligungserklärungen</div>
+          <div className="card">
+            <CheckBox checked={einw1} onChange={setEinw1}>
+              <span><strong>★ Pflichteinwilligung – Beratung:</strong> Ich willige ein, dass der ISUV e.V. meine personenbezogenen Daten (Name, Kontaktdaten, Familienstand, Einkommensverhältnisse, Angaben zu Kindern) zum Zweck der Beratung bei Trennung und Scheidung verarbeitet. <em>Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO.</em></span>
+            </CheckBox>
+            <CheckBox checked={einw2} onChange={setEinw2}>
+              <span><strong>★ Pflichteinwilligung – Unterhalt, Sorgerecht, Umgang:</strong> Ich willige ein, dass meine Daten im Zusammenhang mit Fragen zu Kindesunterhalt, Ehegattenunterhalt, Sorgerecht und Umgangsrecht verarbeitet werden. <em>Rechtsgrundlage: Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a DSGVO.</em></span>
+            </CheckBox>
+            <CheckBox checked={einw3} onChange={setEinw3}>
+              <span><strong>Optional – Weitergabe an Anwälte / Behörden:</strong> Ich willige ein, dass meine Daten bei Bedarf an beauftragte Rechtsanwälte, Familiengerichte oder Behörden (z.B. Jugendamt, Jobcenter) weitergegeben werden dürfen. Diese Einwilligung kann ich jederzeit widerrufen.</span>
+            </CheckBox>
+            <CheckBox checked={einw4} onChange={setEinw4}>
+              <span><strong>Optional – Kontaktaufnahme:</strong> Ich willige ein, dass der ISUV e.V. und der zuständige Berater mich per E-Mail oder Telefon für Rückfragen und Terminvereinbarungen kontaktieren dürfen.</span>
+            </CheckBox>
+            <CheckBox checked={einw5} onChange={setEinw5}>
+              <span><strong>Optional – Speicherung:</strong> Ich willige in die Speicherung meiner Beratungsdaten bis zu meinem Widerruf, längstens 10 Jahre nach Beratungsende, ein. Ein Widerruf ist jederzeit per E-Mail an info@isuv.de möglich.</span>
+            </CheckBox>
+            <div style={{height:"1px",background:"#eee",margin:"10px 0"}} />
+            <CheckBox checked={dsgvoGelesen} onChange={setDsgvoGelesen}>
+              <span><strong>★ Ich habe die Datenschutzerklärung vollständig gelesen und verstanden</strong> und erkläre mich damit einverstanden.</span>
+            </CheckBox>
+          </div>
+
+          <div style={{fontSize:"11px",color:"#888",marginBottom:"8px",textAlign:"center"}}>★ = erforderlich für die Beratung</div>
+          {fehler && <div className="error-box" style={{marginBottom:"8px"}}>⚠️ {fehler}</div>}
+          <div style={{display:"flex",gap:"8px"}}>
+            <button className="btn btn-outline" onClick={()=>{setFehler("");setSchritt(1);}} style={{flex:"0 0 80px"}}>← Zurück</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={()=>{
+              if (!einw1||!einw2||!dsgvoGelesen){ setFehler("Bitte erteilen Sie die erforderlichen Einwilligungen (★) und bestätigen Sie die Datenschutzerklärung."); return; }
+              setFehler(""); setSchritt(3);
+            }}>Weiter →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── SCHRITT 3: UNTERSCHRIFT ── */}
+      {schritt===3 && (
+        <div>
+          <div className="section-title">✍️ Unterschrift & Abschluss</div>
+          <div className="card">
+            <div className="info-box" style={{marginBottom:"12px"}}>
+              📋 <strong>Zusammenfassung Ihrer Einwilligungen:</strong>
+              <div style={{marginTop:"6px",display:"flex",flexWrap:"wrap",gap:"4px"}}>
+                {[
+                  {ok:einw1,l:"Beratung"},{ok:einw2,l:"Unterhalt/Sorge/Umgang"},
+                  {ok:einw3,l:"Weitergabe"},{ok:einw4,l:"Kontakt"},{ok:einw5,l:"Speicherung"}
+                ].map((e,i)=>(
+                  <span key={i} style={{fontSize:"10px",padding:"2px 8px",borderRadius:"10px",fontWeight:"bold",
+                    backgroundColor:e.ok?"#e8f0fb":"#f5f5f5",color:e.ok?"#003366":"#aaa",
+                    border:"1px solid "+(e.ok?"#003366":"#ddd")}}>
+                    {e.ok?"✅":"—"} {e.l}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"10px"}}>
+              <div>
+                <label>Ort der Unterzeichnung</label>
+                <input value={ort2} onChange={e=>setOrt2(e.target.value)} placeholder="München" />
+              </div>
+              <div>
+                <label>Datum</label>
+                <input value={datum} onChange={e=>setDatum(e.target.value)} />
+              </div>
+            </div>
+            <SignaturPad label={"Unterschrift: "+vorname+" "+nachname} value={sigData} onChange={setSigData} />
+            <div style={{fontSize:"11px",color:"#555",backgroundColor:"#f8f9fa",borderRadius:"6px",padding:"10px",marginTop:"8px",lineHeight:"1.6"}}>
+              Mit Ihrer Unterschrift bestätigen Sie, dass Sie die <strong>Datenschutzerklärung des ISUV e.V.</strong> gelesen haben und den markierten Einwilligungen zustimmen. Diese Erklärung kann jederzeit durch eine formlose Mitteilung an <strong>info@isuv.de</strong> widerrufen werden.
+            </div>
+          </div>
+
+          {fehler && <div className="error-box" style={{marginBottom:"8px"}}>⚠️ {fehler}</div>}
+          <div style={{display:"flex",gap:"8px",marginTop:"8px"}}>
+            <button className="btn btn-outline" onClick={()=>{setFehler("");setSchritt(2);}} style={{flex:"0 0 80px"}}>← Zurück</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={absenden} disabled={sendet}>
+              {sendet?"Wird übermittelt…":"✅ Einwilligungserklärung abgeben"}
+            </button>
+          </div>
+          <button className="btn btn-outline" onClick={downloadPDF} style={{marginTop:"8px"}}>
+            📄 Als PDF herunterladen
+          </button>
+          <p className="pflicht-info">★ Pflichtfelder · Daten werden verschlüsselt übertragen · DSGVO-konform</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── App-Wrapper ──
+function FormularApp() {
+  const [status, setStatus] = useState("laden");
+  const [formular, setFormular] = useState(null);
+  const [fehlerText, setFehlerText] = useState("");
+
+  useEffect(() => {
+    if (_TEST) {
+      setFormular({ typ:"datenschutz", vorausgefuellt:"{}", berater_mail:"", berater_name:"ISUV-Berater", label:"Datenschutz & Einwilligung – Test" });
+      setStatus("bereit"); return;
+    }
+    if (!FORMULAR_ID) { setStatus("kein_id"); return; }
+    if (!SB_URL||!SB_KEY) { setStatus("fehler"); setFehlerText("Fehlende Verbindungsdaten."); return; }
+    sbLade(FORMULAR_ID).then(row=>{
+      if (!row) { setStatus("fehler"); setFehlerText("Formular nicht gefunden."); return; }
+      if (row.status==="beantwortet") { setStatus("abgeschlossen"); setFormular(row); return; }
+      setFormular(row); setStatus("bereit");
+    });
+  }, []);
+
+  const vf = formular ? (()=>{ try{return JSON.parse(formular.vorausgefuellt||"{}");}catch(e){return{};} })() : {};
+
+  return (
+    <div>
+      <div className="header">
+        <img src={LOGO} alt="ISUV" onError={e=>e.target.style.display="none"} />
+        <h2>ISUV Anspruchslotse</h2>
+        {formular && <p>{formular.label||"Datenschutzerklärung & Einwilligungserklärung"}{_TEST&&" · 🔧 Testmodus"}</p>}
+      </div>
+      {status==="laden" && <div className="loading"><div className="spinner"/><p>Wird geladen…</p></div>}
+      {status==="fehler" && <div className="error-box"><strong>⚠️ Fehler</strong><br/>{fehlerText}</div>}
+      {status==="kein_id" && (
+        <div style={{padding:"30px 20px",textAlign:"center"}}>
+          <div style={{fontSize:"3em",marginBottom:"12px"}}>🔒</div>
+          <div style={{fontWeight:"bold",fontSize:"16px",color:"#003366",marginBottom:"8px"}}>Kein Formular-Link</div>
+          <div style={{fontSize:"13px",color:"#666",lineHeight:"1.6",maxWidth:"340px",margin:"0 auto"}}>
+            Diese Seite kann nur über einen persönlichen Link geöffnet werden, den Ihr ISUV-Berater Ihnen zugesandt hat.
+          </div>
+        </div>
+      )}
+      {status==="abgeschlossen" && (
+        <div className="success-box">
+          <div style={{fontSize:"2em",marginBottom:"8px"}}>✅</div>
+          <strong>Einwilligungserklärung bereits abgegeben</strong><br/>
+          Diese Erklärung wurde bereits ausgefüllt und übermittelt.
+        </div>
+      )}
+      {status==="bereit" && (
+        <DatenschutzFormular
+          vorausgefuellt={vf}
+          formularId={FORMULAR_ID}
+          beraterMail={formular?.berater_mail||""}
+          beraterName={formular?.berater_name||"ISUV-Berater"}
+        />
+      )}
+    </div>
+  );
+}
+
+const container = document.getElementById("root");
+if (ReactDOM.createRoot) ReactDOM.createRoot(container).render(React.createElement(FormularApp));
+else ReactDOM.render(React.createElement(FormularApp), container);
+</script>
+</body>
+</html>
